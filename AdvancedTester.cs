@@ -50,7 +50,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4.2"); }
+            get { return new Version("1.4.3"); }
         }
 
         public override void Initialize()
@@ -644,6 +644,10 @@ namespace AdvancedTester
             }
             else
             {
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Left F4 None");
+                player.SendCommand("input.bind Right INSERT None");
                 UnderTesting[player.UID].RecoilComplete = true;
                 Vector3 pos = (Vector3)dict["Location"];
                 dict["ButtonPos"] = pos;
@@ -680,10 +684,6 @@ namespace AdvancedTester
             if (SCount2 != 1)
             {
                 dict["SCount2"] = 1;
-                player.SendCommand("input.bind Up F4 None");
-                player.SendCommand("input.bind Down F4 None");
-                player.SendCommand("input.bind Left F4 None");
-                player.SendCommand("input.bind Right INSERT None");
             }
             if (dist < 0.10f && dist >= 0.001f)
             {
@@ -696,6 +696,11 @@ namespace AdvancedTester
             }
             else if (dist > 0.1f)
             {
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Left F2 None");
+                player.SendCommand("input.bind Right F4 None");
+                player.MessageFrom("AdvancedTest", green + "ButtonTest Complete!");
                 dict["ButtonPos"] = pll;
                 dict["SCount"] = 0;
                 UnderTesting[player.UID].ButtonComplete = true;
@@ -725,10 +730,6 @@ namespace AdvancedTester
             {
                 pos = pll;
                 dict["SCount2"] = 2;
-                player.SendCommand("input.bind Up F4 None");
-                player.SendCommand("input.bind Down F4 None");
-                player.SendCommand("input.bind Left F2 None");
-                player.SendCommand("input.bind Right F4 None");
             }
             var dist = Vector3.Distance(pos, pll);
             if (dist < 0.10f && dist >= 0.001f)
@@ -742,6 +743,11 @@ namespace AdvancedTester
             }
             else if (dist > 0.10f)
             {
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F5 None");
+                player.SendCommand("input.bind Left F4 None");
+                player.SendCommand("input.bind Right F4 None");
+                player.MessageFrom("AdvancedTest", green + "ButtonTest2 Complete!");
                 dict["ButtonPos"] = pll;
                 dict["SCount"] = 0;
                 UnderTesting[player.UID].ButtonComplete2 = true;
@@ -771,10 +777,6 @@ namespace AdvancedTester
             {
                 pos = pll;
                 dict["SCount2"] = 3;
-                player.SendCommand("input.bind Up F4 None");
-                player.SendCommand("input.bind Down F5 None");
-                player.SendCommand("input.bind Left F4 None");
-                player.SendCommand("input.bind Right F4 None");
             }
             var dist = Vector3.Distance(pos, pll);
             if (dist < 0.10f && dist >= 0.001f)
@@ -788,6 +790,7 @@ namespace AdvancedTester
             }
             else if (dist > 0.10f)
             {
+                player.MessageFrom("AdvancedTest", green + "ButtonTest3 Complete!");
                 UnderTesting[player.UID].ButtonComplete3 = true;
                 RemoveTest(player);
                 Server.GetServer().BroadcastFrom("AdvancedTest", green + player.Name + " passed all auto tests!");
