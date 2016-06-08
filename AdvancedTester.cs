@@ -27,9 +27,10 @@ namespace AdvancedTester
         public Dictionary<ulong, TestData> UnderTesting;
         public Dictionary<ulong, int> TestCooldown;
         public Dictionary<ulong, Vector3> LastPos;
+        public Dictionary<ulong, List<ulong>> ReportC; 
         public int ReportsNeeded = 3;
         public int TestAllowedEvery = 15;
-        public int RecoilWait = 10;
+        public int RecoilWait = 15;
         public IniParser Settings;
 
         public override string Name
@@ -49,7 +50,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4"); }
+            get { return new Version("1.4.1"); }
         }
 
         public override void Initialize()
@@ -63,7 +64,7 @@ namespace AdvancedTester
                 File.Create(Path.Combine(ModuleFolder, "Settings.ini")).Dispose();
                 Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
                 Settings.AddSetting("Settings", "TestAllowedEvery", "15");
-                Settings.AddSetting("Settings", "RecoilWait", "10");
+                Settings.AddSetting("Settings", "RecoilWait", "15");
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
                 Settings.Save();
             }
@@ -80,6 +81,7 @@ namespace AdvancedTester
             UnderTesting = new Dictionary<ulong, TestData>();
             TestCooldown = new Dictionary<ulong, int>();
             LastPos = new Dictionary<ulong, Vector3>();
+            ReportC = new Dictionary<ulong, List<ulong>>();
             TestPlaces = new List<Vector3>();
             TestPlaces.Add(new Vector3(-5599, 403, -2989));
             TestPlaces.Add(new Vector3(-5594, 403, -2985));
@@ -307,6 +309,23 @@ namespace AdvancedTester
                     player.MessageFrom("AdvancedTest", "Player is currently being tested!");
                     return;
                 }
+                if (ReportC.ContainsKey(p.UID))
+                {
+                    var list = ReportC[p.UID];
+                    if (list.Contains(player.UID))
+                    {
+                        player.MessageFrom("AdvancedTest", "Already Reported!");
+                        return;
+                    }
+                    list.Add(player.UID);
+                    ReportC[p.UID] = list;
+                }
+                else
+                {
+                    var list = new List<ulong>();
+                    list.Add(player.UID);
+                    ReportC[p.UID] = list;
+                }
                 if (!Reports.ContainsKey(p.UID))
                 {
                     Reports[p.UID] = 1;
@@ -407,6 +426,10 @@ namespace AdvancedTester
                     player.TeleportTo(LastPos[player.UID], false);
                     LastPos.Remove(player.UID);
                 }
+            }
+            if (ReportC.ContainsKey(player.UID))
+            {
+                ReportC.Remove(player.UID);
             }
             if (UnderTesting.ContainsKey(player.UID))
             {
@@ -563,6 +586,7 @@ namespace AdvancedTester
             Character c = player.PlayerClient.netUser.playerClient.controllable.character;
             var eyeangles = c.eyesAngles;
             player.FallDamage.ClearInjury();
+            player.HumanBodyTakeDmg.SetBleedingLevel(0f);
             player.TeleportTo(pos, false);
 
             var timedEvent = CreateParallelTimer(1500, dict);
