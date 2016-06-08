@@ -50,7 +50,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4.1"); }
+            get { return new Version("1.4.2"); }
         }
 
         public override void Initialize()
@@ -605,7 +605,7 @@ namespace AdvancedTester
             var dict = e.Args;
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             Vector3 pos = (Vector3)dict["Location"];
-            if (!UnderTesting.ContainsKey(player.UID))
+            if (!UnderTesting.ContainsKey(player.UID) || UnderTesting[player.UID].RecoilComplete)
             {
                 e.Kill();
                 return;
@@ -619,6 +619,11 @@ namespace AdvancedTester
             }
             if (dist >= 0.1f)
             {
+                if (!UnderTesting.ContainsKey(player.UID) || UnderTesting[player.UID].RecoilComplete)
+                {
+                    e.Kill();
+                    return;
+                }
                 Server.GetServer().BanPlayer(player, "Console", "Hack Detected! (Movement)", null, true);
             }
         }
@@ -640,8 +645,13 @@ namespace AdvancedTester
             else
             {
                 UnderTesting[player.UID].RecoilComplete = true;
-                RemoveTest(player);
-                Server.GetServer().BroadcastFrom("AdvancedTest", green + player.Name + " passed all auto tests!");
+                Vector3 pos = (Vector3)dict["Location"];
+                dict["ButtonPos"] = pos;
+                dict["SCount"] = 0;
+                dict["SCount2"] = 0;
+                var timedEvent2 = CreateParallelTimer(1000, dict);
+                timedEvent2.OnFire += Callback5;
+                timedEvent2.Start();
                 return;
             }
             player.MessageFrom("AdvancedTest", teal + "Take your M4 out, Reload It, and Shoot It! ( " + count + "/" + RecoilWait + " )");
@@ -656,6 +666,139 @@ namespace AdvancedTester
             timedEvent.Start();
         }
 
+        public void Callback5(AdvancedTesterTE e)
+        {
+            e.Kill();
+            var dict = e.Args;
+            Vector3 pos = (Vector3)dict["ButtonPos"];
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            int SCount = (int) dict["SCount"];
+            int SCount2 = (int)dict["SCount2"];
+            player.MessageFrom("AdvancedTest", teal + "Keep pressing INSERT");
+            var pll = player.Location;
+            var dist = Vector3.Distance(pos, pll);
+            if (SCount2 != 1)
+            {
+                dict["SCount2"] = 1;
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Left F4 None");
+                player.SendCommand("input.bind Right INSERT None");
+            }
+            if (dist < 0.10f && dist >= 0.001f)
+            {
+                SCount++;
+                if (SCount == 1)
+                {
+                    Server.GetServer().BanPlayer(player, "Console", "Detected JACKED Hack.", null, true);
+                    return;
+                }
+            }
+            else if (dist > 0.1f)
+            {
+                dict["ButtonPos"] = pll;
+                dict["SCount"] = 0;
+                UnderTesting[player.UID].ButtonComplete = true;
+                var timedEvent3 = CreateParallelTimer(1500, dict);
+                timedEvent3.OnFire += Callback6;
+                timedEvent3.Start();
+                return;
+            }
+            dict["ButtonPos"] = pll;
+            dict["SCount"] = SCount;
+            var timedEvent2 = CreateParallelTimer(1000, dict);
+            timedEvent2.OnFire += Callback5;
+            timedEvent2.Start();
+        }
+
+        public void Callback6(AdvancedTesterTE e)
+        {
+            e.Kill();
+            var dict = e.Args;
+            Vector3 pos = (Vector3)dict["ButtonPos"];
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            int SCount = (int)dict["SCount"];
+            int SCount2 = (int)dict["SCount2"];
+            player.MessageFrom("AdvancedTest", teal + "Keep pressing F2");
+            var pll = player.Location;
+            if (SCount2 != 2)
+            {
+                pos = pll;
+                dict["SCount2"] = 2;
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Left F2 None");
+                player.SendCommand("input.bind Right F4 None");
+            }
+            var dist = Vector3.Distance(pos, pll);
+            if (dist < 0.10f && dist >= 0.001f)
+            {
+                SCount++;
+                if (SCount == 1)
+                {
+                    Server.GetServer().BanPlayer(player, "Console", "Detected Dizzy Hack.", null, true);
+                    return;
+                }
+            }
+            else if (dist > 0.10f)
+            {
+                dict["ButtonPos"] = pll;
+                dict["SCount"] = 0;
+                UnderTesting[player.UID].ButtonComplete2 = true;
+                var timedEvent3 = CreateParallelTimer(1500, dict);
+                timedEvent3.OnFire += Callback7;
+                timedEvent3.Start();
+                return;
+            }
+            dict["ButtonPos"] = pll;
+            dict["SCount"] = SCount;
+            var timedEvent2 = CreateParallelTimer(1000, dict);
+            timedEvent2.OnFire += Callback6;
+            timedEvent2.Start();
+        }
+
+        public void Callback7(AdvancedTesterTE e)
+        {
+            e.Kill();
+            var dict = e.Args;
+            Vector3 pos = (Vector3)dict["ButtonPos"];
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            int SCount = (int)dict["SCount"];
+            int SCount2 = (int)dict["SCount2"];
+            player.MessageFrom("AdvancedTest", teal + "Keep pressing F5");
+            var pll = player.Location;
+            if (SCount2 != 3)
+            {
+                pos = pll;
+                dict["SCount2"] = 3;
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F5 None");
+                player.SendCommand("input.bind Left F4 None");
+                player.SendCommand("input.bind Right F4 None");
+            }
+            var dist = Vector3.Distance(pos, pll);
+            if (dist < 0.10f && dist >= 0.001f)
+            {
+                SCount++;
+                if (SCount == 1)
+                {
+                    Server.GetServer().BanPlayer(player, "Console", "Detected A3MON Hack.", null, true);
+                    return;
+                }
+            }
+            else if (dist > 0.10f)
+            {
+                UnderTesting[player.UID].ButtonComplete3 = true;
+                RemoveTest(player);
+                Server.GetServer().BroadcastFrom("AdvancedTest", green + player.Name + " passed all auto tests!");
+                return;
+            }
+            dict["ButtonPos"] = pll;
+            dict["SCount"] = SCount;
+            var timedEvent2 = CreateParallelTimer(1000, dict);
+            timedEvent2.OnFire += Callback7;
+            timedEvent2.Start();
+        }
 
         public AdvancedTesterTE CreateParallelTimer(int timeoutDelay, Dictionary<string, object> args)
         {
