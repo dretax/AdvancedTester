@@ -587,7 +587,7 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Sprint F4 None");
                 player.SendCommand("input.bind Inventory 7 None");
             }
-            else if (!data.ButtonComplete)
+            else if (!data.ButtonComplete2)
             {
                 player.SendCommand("input.bind Up F4 None");
                 player.SendCommand("input.bind Down F4 None");
@@ -601,7 +601,7 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Sprint F4 None");
                 player.SendCommand("input.bind Inventory 7 None");
             }
-            else if (!data.ButtonComplete)
+            else if (!data.ButtonComplete3)
             {
                 player.SendCommand("input.bind Up F4 None");
                 player.SendCommand("input.bind Down F5 None");
