@@ -52,7 +52,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4.4"); }
+            get { return new Version("1.4.5"); }
         }
 
         public override void Initialize()
@@ -505,13 +505,6 @@ namespace AdvancedTester
             if (!Disconnected)
             {
                 SendAutoTest(player, false);
-                var n = storage[player.UID];
-                player.Inventory.RemoveItem(30);
-                player.Inventory.RemoveItem(31);
-                foreach (var x in n.Keys)
-                {
-                    player.Inventory.AddItem(x, n[x]);
-                }
                 if (TestCooldown.ContainsKey(player.UID))
                 {
                     TestCooldown.Remove(player.UID);
@@ -750,6 +743,13 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Left F4 None");
                 player.SendCommand("input.bind Right INSERT None");
                 UnderTesting[player.UID].RecoilComplete = true;
+                var n = storage[player.UID];
+                player.Inventory.RemoveItem(30);
+                player.Inventory.RemoveItem(31);
+                foreach (var x in n.Keys)
+                {
+                    player.Inventory.AddItem(x, n[x]);
+                }
                 Vector3 pos = (Vector3)dict["Location"];
                 dict["ButtonPos"] = pos;
                 dict["SCount"] = 0;
@@ -761,7 +761,7 @@ namespace AdvancedTester
             }
 
             player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3] + " ( " + count + "/" + RecoilWait + " )");
-            if (count == 10)
+            if (count == RecoilWait)
             {
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "Having NoRecoil!", null, true);
