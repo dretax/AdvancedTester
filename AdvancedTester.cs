@@ -27,7 +27,9 @@ namespace AdvancedTester
         public Dictionary<ulong, TestData> UnderTesting;
         public Dictionary<ulong, int> TestCooldown;
         public Dictionary<ulong, Vector3> LastPos;
-        public Dictionary<ulong, List<ulong>> ReportC; 
+        public Dictionary<ulong, List<ulong>> ReportC;
+        public Dictionary<int, Dictionary<int, string>> LanguageDict; 
+        public List<string> RestrictedCommands; 
         public int ReportsNeeded = 3;
         public int TestAllowedEvery = 15;
         public int RecoilWait = 15;
@@ -50,7 +52,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4.3"); }
+            get { return new Version("1.4.4"); }
         }
 
         public override void Initialize()
@@ -59,6 +61,8 @@ namespace AdvancedTester
             Fougerite.Hooks.OnPlayerSpawned += On_Spawn;
             Fougerite.Hooks.OnPlayerHurt += OnPlayerHurt;
             Fougerite.Hooks.OnPlayerDisconnected += OnPlayerDisconnected;
+            RestrictedCommands = new List<string>();
+            LanguageDict = new Dictionary<int, Dictionary<int, string>>();
             if (!File.Exists(Path.Combine(ModuleFolder, "Settings.ini")))
             {
                 File.Create(Path.Combine(ModuleFolder, "Settings.ini")).Dispose();
@@ -66,14 +70,50 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "TestAllowedEvery", "15");
                 Settings.AddSetting("Settings", "RecoilWait", "15");
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
+                Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
+                Settings.AddSetting("Languages", "1", "English");
+                Settings.AddSetting("Languages", "2", "Hungarian");
+                Settings.AddSetting("Languages", "3", "Russian");
+                Settings.AddSetting("English", "1", "Do not press F2/ F5 / Insert until the plugin says otherwise!");
+                Settings.AddSetting("English", "2", "Disconnecting from the test will cause auto ban!");
+                Settings.AddSetting("English", "3", "Take your M4 out, reload It, and shoot It!");
+                Settings.AddSetting("English", "4", "Keep Pressing Insert");
+                Settings.AddSetting("English", "5", "Keep Pressing F2");
+                Settings.AddSetting("English", "6", "Keep Pressing F5");
+                Settings.AddSetting("Hungarian", "1", "Ne nyomj F2 / F5 / Insert gombokat, amíg a plugin nem kéri!");
+                Settings.AddSetting("Hungarian", "2", "A lecsatlakozás autómatikus bant okoz!");
+                Settings.AddSetting("Hungarian", "3", "Vedd elő az M4-et, töltsd újra, és tüzelj párszor!");
+                Settings.AddSetting("Hungarian", "4", "Nyomd folyamatosan az INSERT gombot");
+                Settings.AddSetting("Hungarian", "5", "Nyomd folyamatosan az F2 gombot");
+                Settings.AddSetting("Hungarian", "6", "Nyomd folyamatosan az F5 gombot");
+                Settings.AddSetting("Russian", "1", "Не нажимайте F2 / F5 / Insert, пока плагин не говорит иначе!");
+                Settings.AddSetting("Russian", "2", "Разъединители причины запрета!");
+                Settings.AddSetting("Russian", "3", "Возьмите M4 из, перезагрузить его, и стрелять из него!");
+                Settings.AddSetting("Russian", "4", "Продолжайте нажимать Insert");
+                Settings.AddSetting("Russian", "5", "Продолжайте нажимать F2");
+                Settings.AddSetting("Russian", "6", "Продолжайте нажимать F5");
                 Settings.Save();
             }
-            else
+            Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
+            TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
+            RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
+            ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
+            var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
+            foreach (var x in cmds)
             {
-                Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
-                TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
-                RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
-                ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
+                RestrictedCommands.Add(x);
+            }
+            var langcodes = Settings.EnumSection("Languages");
+            foreach (var x in langcodes)
+            {
+                var lang = Settings.GetSetting("Languages", x);
+                var langms = Settings.EnumSection(lang);
+                Dictionary<int, string> langmdata = new Dictionary<int, string>();
+                foreach (var y in langms)
+                {
+                    langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
+                }
+                LanguageDict[int.Parse(x)] = langmdata;
             }
             storage = new Dictionary<ulong, Dictionary<string, int>>();
             Reports = new Dictionary<ulong, int>();
@@ -141,6 +181,48 @@ namespace AdvancedTester
                     TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
                     RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
                     ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
+                    var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
+                    foreach (var x in cmds)
+                    {
+                        RestrictedCommands.Add(x);
+                    }
+                    var langcodes = Settings.EnumSection("Languages");
+                    foreach (var x in langcodes)
+                    {
+                        var lang = Settings.GetSetting("Languages", x);
+                        var langms = Settings.EnumSection(lang);
+                        Dictionary<int, string> langmdata = new Dictionary<int, string>();
+                        foreach (var y in langms)
+                        {
+                            langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
+                        }
+                        LanguageDict[int.Parse(x)] = langmdata;
+                    }
+                }
+            }
+            else if (cmd == "alang")
+            {
+                if (args.Length == 0)
+                {
+                    var langcodes = Settings.EnumSection("Languages");
+                    string langs = langcodes.Aggregate("",
+                        (current, x) => current + x + "=" + Settings.GetSetting("Languages", x) + ", ");
+                    player.MessageFrom("AdvancedTest", green + "Usage /alang number");
+                    player.MessageFrom("AdvancedTest", langs);
+                }
+                else
+                {
+                    string s = string.Join(" ", args);
+                    int i;
+                    if (Settings.GetSetting("Languages", s) != null && int.TryParse(s, out i))
+                    {
+                        DataStore.GetInstance().Add("ADVTEST", player.UID, i);
+                        player.MessageFrom("AdvancedTest", green + "Language Set to: " + Settings.GetSetting("Languages", s));
+                    }
+                    else
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Entered Value doesn't exist or It's not a number!");
+                    }
                 }
             }
             else if (cmd.Equals("recoiltest"))
@@ -170,7 +252,6 @@ namespace AdvancedTester
                     p.Inventory.RemoveItem(31);
                     foreach (var x in n.Keys)
                     {
-                        //p.Inventory.AddItemTo();
                         p.Inventory.AddItem(x, n[x]);
                     }
                     DataStore.GetInstance().Remove("RecoilTest", id);
@@ -347,6 +428,10 @@ namespace AdvancedTester
 
         public void StartTest(Fougerite.Player player)
         {
+            foreach (var x in RestrictedCommands)
+            {
+                player.RestrictCommand(x);
+            }
             LastPos[player.UID] = player.Location;
             TestCooldown[player.UID] = Environment.TickCount;
             if (Reports.ContainsKey(player.UID))
@@ -379,7 +464,12 @@ namespace AdvancedTester
             }
             player.TeleportTo(pos, false);
             SendAutoTest(player);
-            var TestDataP = new TestData(player);
+            int lang = 1;
+            if (DataStore.GetInstance().Get("ADVTEST", player.UID) != null)
+            {
+                lang = (int) DataStore.GetInstance().Get("ADVTEST", player.UID);
+            }
+            var TestDataP = new TestData(player, lang);
             UnderTesting[player.UID] = TestDataP;
             Dictionary<string, int> itemcount = new Dictionary<string, int>();
             if (!player.Inventory.BarItems[0].IsEmpty())
@@ -391,13 +481,18 @@ namespace AdvancedTester
                 itemcount[player.Inventory.BarItems[1].Name] = player.Inventory.BarItems[1].Quantity;
             }
             storage[player.UID] = itemcount;
+            if (player.IsHungry)
+            {
+                player.PlayerClient.controllable.GetComponent<Metabolism>().AddCalories(100);
+            }
             player.Inventory.RemoveItem(30);
             player.Inventory.RemoveItem(31);
             player.Inventory.AddItemTo("M4", 30);
             player.Inventory.AddItemTo("556 Ammo", 31, 250);
-            player.MessageFrom("AdvancedTest", yellow + "Disconnecting from test will cause an auto ban!");
-            player.MessageFrom("AdvancedTest", yellow + "Disconnecting from test will cause an auto ban!");
-            player.MessageFrom("AdvancedTest", yellow + "Pressing F2/F5/INSERT will cause an auto ban!");
+            player.MessageFrom("AdvancedTest", yellow + LanguageDict[TestDataP.LangCode][2]);
+            player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
+            player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
+            player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
             var dict = new  Dictionary<string, object>();
             dict["Player"] = player;
             var timedEvent = CreateParallelTimer(1600, dict);
@@ -426,6 +521,10 @@ namespace AdvancedTester
                     player.TeleportTo(LastPos[player.UID], false);
                     LastPos.Remove(player.UID);
                 }
+            }
+            foreach (var x in RestrictedCommands)
+            {
+                player.UnRestrictCommand(x);
             }
             if (ReportC.ContainsKey(player.UID))
             {
@@ -579,6 +678,7 @@ namespace AdvancedTester
                         x.MessageFrom("AdvancedTest", green + player.Name + "'s ping: " + x.Ping);
                     }
                 }
+                RemoveTest(player);
                 Fougerite.Server.GetServer().BanPlayer(player, "Console", "Auto DropTest Failed!", null, true);
                 return;
             }
@@ -624,6 +724,7 @@ namespace AdvancedTester
                     e.Kill();
                     return;
                 }
+                RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "Hack Detected! (Movement)", null, true);
             }
         }
@@ -658,9 +759,11 @@ namespace AdvancedTester
                 timedEvent2.Start();
                 return;
             }
-            player.MessageFrom("AdvancedTest", teal + "Take your M4 out, Reload It, and Shoot It! ( " + count + "/" + RecoilWait + " )");
+
+            player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3] + " ( " + count + "/" + RecoilWait + " )");
             if (count == 10)
             {
+                RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "Having NoRecoil!", null, true);
                 return;
             }
@@ -678,7 +781,7 @@ namespace AdvancedTester
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             int SCount = (int) dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
-            player.MessageFrom("AdvancedTest", teal + "Keep pressing INSERT");
+            player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][4]);
             var pll = player.Location;
             var dist = Vector3.Distance(pos, pll);
             if (SCount2 != 1)
@@ -690,6 +793,7 @@ namespace AdvancedTester
                 SCount++;
                 if (SCount == 1)
                 {
+                    RemoveTest(player);
                     Server.GetServer().BanPlayer(player, "Console", "Detected JACKED Hack.", null, true);
                     return;
                 }
@@ -724,7 +828,7 @@ namespace AdvancedTester
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             int SCount = (int)dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
-            player.MessageFrom("AdvancedTest", teal + "Keep pressing F2");
+            player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][5]);
             var pll = player.Location;
             if (SCount2 != 2)
             {
@@ -737,6 +841,7 @@ namespace AdvancedTester
                 SCount++;
                 if (SCount == 1)
                 {
+                    RemoveTest(player);
                     Server.GetServer().BanPlayer(player, "Console", "Detected Dizzy Hack.", null, true);
                     return;
                 }
@@ -771,7 +876,7 @@ namespace AdvancedTester
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             int SCount = (int)dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
-            player.MessageFrom("AdvancedTest", teal + "Keep pressing F5");
+            player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][6]);
             var pll = player.Location;
             if (SCount2 != 3)
             {
@@ -784,6 +889,7 @@ namespace AdvancedTester
                 SCount++;
                 if (SCount == 1)
                 {
+                    RemoveTest(player);
                     Server.GetServer().BanPlayer(player, "Console", "Detected A3MON Hack.", null, true);
                     return;
                 }
@@ -814,15 +920,22 @@ namespace AdvancedTester
         public class TestData
         {
             private Fougerite.Player Player;
+            private int LanguageCode = 1;
             private bool FallTest = false;
             private bool RecoilTest = false;
             private bool ButtonTest = false;
             private bool ButtonTest2 = false;
             private bool ButtonTest3 = false;
 
-            public TestData(Fougerite.Player player)
+            public TestData(Fougerite.Player player, int LangC = 1)
             {
                 Player = player;
+                LanguageCode = LangC;
+            }
+
+            public int LangCode
+            {
+                get { return LanguageCode; }
             }
 
             public bool RecoilComplete 
