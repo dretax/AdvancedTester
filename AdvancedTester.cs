@@ -52,7 +52,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4.5"); }
+            get { return new Version("1.4.6"); }
         }
 
         public override void Initialize()
@@ -498,6 +498,9 @@ namespace AdvancedTester
             var timedEvent = CreateParallelTimer(1600, dict);
             timedEvent.OnFire += Callback;
             timedEvent.Start();
+            var timedEvent2 = CreateParallelTimer(500, dict);
+            timedEvent2.OnFire += AntiMove;
+            timedEvent2.Start();
         }
 
         public void RemoveTest(Fougerite.Player player, bool Disconnected = false)
@@ -547,6 +550,72 @@ namespace AdvancedTester
                 Send2(player, false);
                 DataStore.GetInstance().Remove("JumpTest", player.UID);
             }
+        }
+
+        private bool SendW(Fougerite.Player player)
+        {
+            if (!UnderTesting.ContainsKey(player.UID))
+            {
+                return false;
+            }
+            var data = UnderTesting[player.UID];
+            if (!data.RecoilComplete)
+            {
+                player.SendCommand("input.mousespeed 0");
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F5 None");
+                player.SendCommand("input.bind Left F2 None");
+                player.SendCommand("input.bind Right INSERT None");
+                player.SendCommand("input.bind Fire Mouse0 W");
+                player.SendCommand("input.bind Jump F4 None");
+                player.SendCommand("input.bind Duck F4 None");
+                player.SendCommand("input.bind AltFire F4 None");
+                player.SendCommand("input.bind Sprint F4 None");
+                player.SendCommand("input.bind Inventory 7 None");
+            }
+            else if (!data.ButtonComplete)
+            {
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Left F4 None");
+                player.SendCommand("input.bind Right INSERT None");
+                player.SendCommand("input.mousespeed 0");
+                player.SendCommand("input.bind Fire Mouse0 W");
+                player.SendCommand("input.bind Jump F4 None");
+                player.SendCommand("input.bind Duck F4 None");
+                player.SendCommand("input.bind AltFire F4 None");
+                player.SendCommand("input.bind Sprint F4 None");
+                player.SendCommand("input.bind Inventory 7 None");
+            }
+            else if (!data.ButtonComplete)
+            {
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Left F2 None");
+                player.SendCommand("input.bind Right F4 None");
+                player.SendCommand("input.mousespeed 0");
+                player.SendCommand("input.bind Fire Mouse0 W");
+                player.SendCommand("input.bind Jump F4 None");
+                player.SendCommand("input.bind Duck F4 None");
+                player.SendCommand("input.bind AltFire F4 None");
+                player.SendCommand("input.bind Sprint F4 None");
+                player.SendCommand("input.bind Inventory 7 None");
+            }
+            else if (!data.ButtonComplete)
+            {
+                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Down F5 None");
+                player.SendCommand("input.bind Left F4 None");
+                player.SendCommand("input.bind Right F4 None");
+                player.SendCommand("input.mousespeed 0");
+                player.SendCommand("input.bind Fire Mouse0 W");
+                player.SendCommand("input.bind Jump F4 None");
+                player.SendCommand("input.bind Duck F4 None");
+                player.SendCommand("input.bind AltFire F4 None");
+                player.SendCommand("input.bind Sprint F4 None");
+                player.SendCommand("input.bind Inventory 7 None");
+            }
+            return true;
         }
 
         private void SendAutoTest(Fougerite.Player player, bool on = true)
@@ -644,6 +713,17 @@ namespace AdvancedTester
             }
         }
 
+        public void AntiMove(AdvancedTesterTE e)
+        {
+            var dict = e.Args;
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            bool b = SendW(player);
+            if (!b)
+            {
+                e.Kill();
+            }
+        }
+
         public void Callback(AdvancedTesterTE e)
         {
             var dict = e.Args;
@@ -654,6 +734,7 @@ namespace AdvancedTester
             var timedEvent = CreateParallelTimer(3500, dict);
             timedEvent.OnFire += Callback2;
             timedEvent.Start();
+
         }
 
         public void Callback2(AdvancedTesterTE e)
