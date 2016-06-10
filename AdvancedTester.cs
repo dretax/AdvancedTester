@@ -30,7 +30,8 @@ namespace AdvancedTester
         public Dictionary<ulong, Vector3> LastPos;
         public Dictionary<ulong, List<ulong>> ReportC;
         public Dictionary<string, int> LanguageData;
-        public Dictionary<int, Dictionary<int, string>> LanguageDict; 
+        public Dictionary<int, Dictionary<int, string>> LanguageDict;
+        public List<string> DSNames; 
         public List<string> RestrictedCommands; 
         public int ReportsNeeded = 3;
         public int TestAllowedEvery = 15;
@@ -68,6 +69,7 @@ namespace AdvancedTester
             Fougerite.Hooks.OnChat += OnChat;
             Fougerite.Hooks.OnModulesLoaded += OnModulesLoaded;
             RestrictedCommands = new List<string>();
+            DSNames = new List<string>();
             LanguageDict = new Dictionary<int, Dictionary<int, string>>();
             LanguageData = new Dictionary<string, int>();
             if (!File.Exists(Path.Combine(ModuleFolder, "Settings.ini")))
@@ -78,6 +80,7 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "RecoilWait", "20");
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
                 Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
+                Settings.AddSetting("Settings", "DSNames", "HGIG,RandomDSName");
                 Settings.AddSetting("Languages", "1", "English");
                 Settings.AddSetting("Languages", "2", "Hungarian");
                 Settings.AddSetting("Languages", "3", "Russian");
@@ -152,6 +155,11 @@ namespace AdvancedTester
             foreach (var x in cmds)
             {
                 RestrictedCommands.Add(x);
+            }
+            var dsnamesc = Settings.GetSetting("Settings", "DSNames").Split(Convert.ToChar(","));
+            foreach (var x in dsnamesc)
+            {
+                DSNames.Add(x);
             }
             var langcodes = Settings.EnumSection("Languages");
             foreach (var x in langcodes)
@@ -500,6 +508,12 @@ namespace AdvancedTester
                 if (p.Admin || p.Moderator)
                 {
                     player.MessageFrom("AdvancedTest", red + "Admins cannot be tested!");
+                    return;
+                }
+                if (DSNames.Any(x => DataStore.GetInstance().ContainsKey(x, p.UID) ||
+                                     DataStore.GetInstance().ContainsKey(x, p.SteamID)))
+                {
+                    player.MessageFrom("AdvancedTest", red + "Player cannot be tested this time, wait a bit!");
                     return;
                 }
                 if (TestCooldown.ContainsKey(p.UID))
