@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Fougerite;
 using Fougerite.Events;
 using UnityEngine;
@@ -28,12 +29,14 @@ namespace AdvancedTester
         public Dictionary<ulong, int> TestCooldown;
         public Dictionary<ulong, Vector3> LastPos;
         public Dictionary<ulong, List<ulong>> ReportC;
+        public Dictionary<string, int> LanguageData;
         public Dictionary<int, Dictionary<int, string>> LanguageDict; 
         public List<string> RestrictedCommands; 
         public int ReportsNeeded = 3;
         public int TestAllowedEvery = 15;
         public int RecoilWait = 15;
         public IniParser Settings;
+        public bool GeoIPSupport = false;
 
         public override string Name
         {
@@ -52,7 +55,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4.8"); }
+            get { return new Version("1.4.9"); }
         }
 
         public override void Initialize()
@@ -60,10 +63,13 @@ namespace AdvancedTester
             Fougerite.Hooks.OnCommand += On_Command;
             Fougerite.Hooks.OnPlayerSpawned += On_Spawn;
             Fougerite.Hooks.OnPlayerHurt += OnPlayerHurt;
+            Fougerite.Hooks.OnPlayerConnected += OnPlayerConnected;
             Fougerite.Hooks.OnPlayerDisconnected += OnPlayerDisconnected;
             Fougerite.Hooks.OnChat += OnChat;
+            Fougerite.Hooks.OnModulesLoaded += OnModulesLoaded;
             RestrictedCommands = new List<string>();
             LanguageDict = new Dictionary<int, Dictionary<int, string>>();
+            LanguageData = new Dictionary<string, int>();
             if (!File.Exists(Path.Combine(ModuleFolder, "Settings.ini")))
             {
                 File.Create(Path.Combine(ModuleFolder, "Settings.ini")).Dispose();
@@ -79,48 +85,63 @@ namespace AdvancedTester
                 Settings.AddSetting("Languages", "5", "Romanian");
                 Settings.AddSetting("Languages", "6", "Spanish");
                 Settings.AddSetting("Languages", "7", "Arabic");
+                Settings.AddSetting("Languages", "8", "Italian");
+                Settings.AddSetting("LanguageData", "Spain", "6");
+                Settings.AddSetting("LanguageData", "Hungary", "2");
+                Settings.AddSetting("LanguageData", "Russia", "3");
+                Settings.AddSetting("LanguageData", "Portugal", "4");
+                Settings.AddSetting("LanguageData", "Romania", "5");
+                Settings.AddSetting("LanguageData", "Saudi Arabia", "7");
+                Settings.AddSetting("LanguageData", "United Arab Emirates", "7");
+                Settings.AddSetting("LanguageData", "Italy", "8");
                 Settings.AddSetting("English", "1", "Do not press F2/ F5 / Insert until the plugin says otherwise!");
                 Settings.AddSetting("English", "2", "Disconnecting from the test will cause auto ban!");
                 Settings.AddSetting("English", "3", "Take your M4 out, reload It, and shoot It!");
-                Settings.AddSetting("English", "4", "Keep Pressing Insert");
+                Settings.AddSetting("English", "4", "Keep Pressing Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("English", "5", "Keep Pressing F2");
                 Settings.AddSetting("English", "6", "Keep Pressing F5");
                 Settings.AddSetting("Hungarian", "1", "Ne nyomj F2 / F5 / Insert gombokat, amíg a plugin nem kéri!");
                 Settings.AddSetting("Hungarian", "2", "A lecsatlakozás autómatikus bant okoz!");
                 Settings.AddSetting("Hungarian", "3", "Vedd elő az M4-et, töltsd újra, és tüzelj párszor!");
-                Settings.AddSetting("Hungarian", "4", "Nyomd folyamatosan az INSERT gombot");
+                Settings.AddSetting("Hungarian", "4", "Nyomd folyamatosan az INSERT/Ins/NUMPAD 0 gombot");
                 Settings.AddSetting("Hungarian", "5", "Nyomd folyamatosan az F2 gombot");
                 Settings.AddSetting("Hungarian", "6", "Nyomd folyamatosan az F5 gombot");
                 Settings.AddSetting("Russian", "1", "Не нажимайте F2 / F5 / Insert, пока плагин не говорит иначе!");
                 Settings.AddSetting("Russian", "2", "Разъединители причины запрета!");
                 Settings.AddSetting("Russian", "3", "Возьмите M4 из, перезагрузить его, и стрелять из него!");
-                Settings.AddSetting("Russian", "4", "Продолжайте нажимать Insert");
+                Settings.AddSetting("Russian", "4", "Продолжайте нажимать Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("Russian", "5", "Продолжайте нажимать F2");
                 Settings.AddSetting("Russian", "6", "Продолжайте нажимать F5");
                 Settings.AddSetting("Portuguese", "1", "Não carregues no F2 / F5 / Insert sem te pedirem para o fazer!");
                 Settings.AddSetting("Portuguese", "2", "Sair do teste vai resultar em autoban!");
                 Settings.AddSetting("Portuguese", "3", "Pega na M4, recarrega-a e dispara-a sem parar!");
-                Settings.AddSetting("Portuguese", "4", "Carrega no Insert continuamente.");
+                Settings.AddSetting("Portuguese", "4", "Carrega no Insert/Ins/NUMPAD 0 continuamente.");
                 Settings.AddSetting("Portuguese", "5", "Carrega no F2 continuamente.");
                 Settings.AddSetting("Portuguese", "6", "Carrega no F5 continuamente.");
                 Settings.AddSetting("Romanian", "1", "Nu apasa tastele F2 / F5 / Insert pana nu iti spune plug - inul sa o faci");
                 Settings.AddSetting("Romanian", "2", "Daca te deconectezi in timp ce esti testat vei lua ban automat");
                 Settings.AddSetting("Romanian", "3", "Echipeaza M4 - ul, incarca - l si trage!");
-                Settings.AddSetting("Romanian", "4", "Apasa tasta Insert incontinuu");
+                Settings.AddSetting("Romanian", "4", "Apasa tasta Insert/Ins/NUMPAD 0 incontinuu");
                 Settings.AddSetting("Romanian", "5", "Apasa tasta F2 incontinuu");
                 Settings.AddSetting("Romanian", "6", "Apasa tasta F5 incontinuu");
                 Settings.AddSetting("Spanish", "1", "No pulses F2/ F5 / Insert hasta que el plugin lo diga");
                 Settings.AddSetting("Spanish", "2", "Desconectarse del servidor durante el test causará un baneo automático");
                 Settings.AddSetting("Spanish", "3", "Equipa tu M4, recarga y dispara");
-                Settings.AddSetting("Spanish", "4", "Sigue pulsando Insert");
+                Settings.AddSetting("Spanish", "4", "Sigue pulsando Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("Spanish", "5", "Sigue pulsando F2");
                 Settings.AddSetting("Spanish", "6", "Sigue pulsando F5");
                 Settings.AddSetting("Arabic", "1", " تدغط علي F2 / F5 / Insert حتي يقول لكا الخادم.");
                 Settings.AddSetting("Arabic", "2", "فصل الاتصال اثنا الاختبار سايسبب من الخادم بمنعك من الاتصال مجددآ");
                 Settings.AddSetting("Arabic", "3", "اخرج ال M4 ، قم بسحبه، ثم قم باطلاق النار");
-                Settings.AddSetting("Arabic", "4", "ادغط Insert باستمرار");
+                Settings.AddSetting("Arabic", "4", "ادغط Insert/Ins/NUMPAD 0 باستمرار");
                 Settings.AddSetting("Arabic", "5", "ادغط F2 باستمرار");
                 Settings.AddSetting("Arabic", "6", "ادغط F5 باستمرار");
+                Settings.AddSetting("Italian", "1", "Non premere F2 / F5 / Insert sino a quando non te lo chiede il plugin!");
+                Settings.AddSetting("Italian", "2", "Se ti disconnetti dal test verrai autobannato!");
+                Settings.AddSetting("Italian", "3", "Prendi il tuo M4, ricaricalo e spara!");
+                Settings.AddSetting("Italian", "4", "Tieni premuto Insert");
+                Settings.AddSetting("Italian", "5", "Tieni premuto F2");
+                Settings.AddSetting("Italian", "6", "Tieni premuto F5");
                 Settings.Save();
             }
             Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
@@ -143,6 +164,12 @@ namespace AdvancedTester
                     langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
                 }
                 LanguageDict[int.Parse(x)] = langmdata;
+            }
+            var langdata = Settings.EnumSection("LanguageData");
+            foreach (var x in langdata)
+            {
+                var lang = Settings.GetSetting("LanguageData", x);
+                LanguageData[x] = int.Parse(lang);
             }
             storage = new Dictionary<ulong, Dictionary<string, int>>();
             Reports = new Dictionary<ulong, int>();
@@ -170,9 +197,49 @@ namespace AdvancedTester
         {
             Fougerite.Hooks.OnCommand -= On_Command;
             Fougerite.Hooks.OnPlayerSpawned -= On_Spawn;
+            Fougerite.Hooks.OnPlayerConnected -= OnPlayerConnected;
             Fougerite.Hooks.OnPlayerHurt -= OnPlayerHurt;
             Fougerite.Hooks.OnPlayerDisconnected -= OnPlayerDisconnected;
             Fougerite.Hooks.OnChat -= OnChat;
+            Fougerite.Hooks.OnModulesLoaded -= OnModulesLoaded;
+        }
+
+        public void OnPlayerConnected(Fougerite.Player player)
+        {
+            if (!GeoIPSupport)
+            {
+                return;
+            }
+            if (DataStore.GetInstance().Get("ADVTEST", player.UID) == null)
+            {
+                Thread thread = new Thread(() => DetermineLocation(player));
+                thread.Start();
+            }
+        }
+
+        internal void DetermineLocation(Fougerite.Player player)
+        {
+            var GeoIPS = GeoIP.GeoIP.Instance;
+            var data = GeoIPS.GetDataOfIP(player.IP);
+            if (LanguageData.ContainsKey(data.Country))
+            {
+                DataStore.GetInstance().Add("ADVTEST", player.UID, LanguageData[data.Country]);
+            }
+            else
+            {
+                DataStore.GetInstance().Add("ADVTEST", player.UID, 1);
+            }
+        }
+
+        public void OnModulesLoaded()
+        {
+            foreach (var x in Fougerite.ModuleManager.Modules)
+            {
+                if (x.Plugin.Name.ToLower().Contains("geoip"))
+                {
+                    GeoIPSupport = true;
+                }
+            }
         }
 
         public void OnChat(Fougerite.Player player, ref ChatString text)

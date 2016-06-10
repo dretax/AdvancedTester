@@ -42,6 +42,9 @@
     <Reference Include="Fougerite">
       <HintPath>..\..\FougeriteProject\bin\Fougerite.dll</HintPath>
     </Reference>
+    <Reference Include="GeoIP">
+      <HintPath>..\..\FougeriteProject\References\GeoIP.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
