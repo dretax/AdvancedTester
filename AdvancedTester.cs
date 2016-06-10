@@ -52,7 +52,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4.6"); }
+            get { return new Version("1.4.8"); }
         }
 
         public override void Initialize()
@@ -61,19 +61,24 @@ namespace AdvancedTester
             Fougerite.Hooks.OnPlayerSpawned += On_Spawn;
             Fougerite.Hooks.OnPlayerHurt += OnPlayerHurt;
             Fougerite.Hooks.OnPlayerDisconnected += OnPlayerDisconnected;
+            Fougerite.Hooks.OnChat += OnChat;
             RestrictedCommands = new List<string>();
             LanguageDict = new Dictionary<int, Dictionary<int, string>>();
             if (!File.Exists(Path.Combine(ModuleFolder, "Settings.ini")))
             {
                 File.Create(Path.Combine(ModuleFolder, "Settings.ini")).Dispose();
                 Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
-                Settings.AddSetting("Settings", "TestAllowedEvery", "15");
-                Settings.AddSetting("Settings", "RecoilWait", "15");
+                Settings.AddSetting("Settings", "TestAllowedEvery", "20");
+                Settings.AddSetting("Settings", "RecoilWait", "20");
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
                 Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
                 Settings.AddSetting("Languages", "1", "English");
                 Settings.AddSetting("Languages", "2", "Hungarian");
                 Settings.AddSetting("Languages", "3", "Russian");
+                Settings.AddSetting("Languages", "4", "Portuguese");
+                Settings.AddSetting("Languages", "5", "Romanian");
+                Settings.AddSetting("Languages", "6", "Spanish");
+                Settings.AddSetting("Languages", "7", "Arabic");
                 Settings.AddSetting("English", "1", "Do not press F2/ F5 / Insert until the plugin says otherwise!");
                 Settings.AddSetting("English", "2", "Disconnecting from the test will cause auto ban!");
                 Settings.AddSetting("English", "3", "Take your M4 out, reload It, and shoot It!");
@@ -92,6 +97,30 @@ namespace AdvancedTester
                 Settings.AddSetting("Russian", "4", "Продолжайте нажимать Insert");
                 Settings.AddSetting("Russian", "5", "Продолжайте нажимать F2");
                 Settings.AddSetting("Russian", "6", "Продолжайте нажимать F5");
+                Settings.AddSetting("Portuguese", "1", "Não carregues no F2 / F5 / Insert sem te pedirem para o fazer!");
+                Settings.AddSetting("Portuguese", "2", "Sair do teste vai resultar em autoban!");
+                Settings.AddSetting("Portuguese", "3", "Pega na M4, recarrega-a e dispara-a sem parar!");
+                Settings.AddSetting("Portuguese", "4", "Carrega no Insert continuamente.");
+                Settings.AddSetting("Portuguese", "5", "Carrega no F2 continuamente.");
+                Settings.AddSetting("Portuguese", "6", "Carrega no F5 continuamente.");
+                Settings.AddSetting("Romanian", "1", "Nu apasa tastele F2 / F5 / Insert pana nu iti spune plug - inul sa o faci");
+                Settings.AddSetting("Romanian", "2", "Daca te deconectezi in timp ce esti testat vei lua ban automat");
+                Settings.AddSetting("Romanian", "3", "Echipeaza M4 - ul, incarca - l si trage!");
+                Settings.AddSetting("Romanian", "4", "Apasa tasta Insert incontinuu");
+                Settings.AddSetting("Romanian", "5", "Apasa tasta F2 incontinuu");
+                Settings.AddSetting("Romanian", "6", "Apasa tasta F5 incontinuu");
+                Settings.AddSetting("Spanish", "1", "No pulses F2/ F5 / Insert hasta que el plugin lo diga");
+                Settings.AddSetting("Spanish", "2", "Desconectarse del servidor durante el test causará un baneo automático");
+                Settings.AddSetting("Spanish", "3", "Equipa tu M4, recarga y dispara");
+                Settings.AddSetting("Spanish", "4", "Sigue pulsando Insert");
+                Settings.AddSetting("Spanish", "5", "Sigue pulsando F2");
+                Settings.AddSetting("Spanish", "6", "Sigue pulsando F5");
+                Settings.AddSetting("Arabic", "1", " تدغط علي F2 / F5 / Insert حتي يقول لكا الخادم.");
+                Settings.AddSetting("Arabic", "2", "فصل الاتصال اثنا الاختبار سايسبب من الخادم بمنعك من الاتصال مجددآ");
+                Settings.AddSetting("Arabic", "3", "اخرج ال M4 ، قم بسحبه، ثم قم باطلاق النار");
+                Settings.AddSetting("Arabic", "4", "ادغط Insert باستمرار");
+                Settings.AddSetting("Arabic", "5", "ادغط F2 باستمرار");
+                Settings.AddSetting("Arabic", "6", "ادغط F5 باستمرار");
                 Settings.Save();
             }
             Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
@@ -143,6 +172,15 @@ namespace AdvancedTester
             Fougerite.Hooks.OnPlayerSpawned -= On_Spawn;
             Fougerite.Hooks.OnPlayerHurt -= OnPlayerHurt;
             Fougerite.Hooks.OnPlayerDisconnected -= OnPlayerDisconnected;
+            Fougerite.Hooks.OnChat -= OnChat;
+        }
+
+        public void OnChat(Fougerite.Player player, ref ChatString text)
+        {
+            if (text.OriginalMessage.ToLower().Contains("hacker"))
+            {
+                player.Notice("If you see a hacker, report him using /areport name - 3 votes = AutoTest!");
+            }
         }
 
         public void OnPlayerDisconnected(Fougerite.Player player)
@@ -216,6 +254,10 @@ namespace AdvancedTester
                     int i;
                     if (Settings.GetSetting("Languages", s) != null && int.TryParse(s, out i))
                     {
+                        if (UnderTesting.ContainsKey(player.UID))
+                        {
+                            UnderTesting[player.UID].LangCode = i;
+                        }
                         DataStore.GetInstance().Add("ADVTEST", player.UID, i);
                         player.MessageFrom("AdvancedTest", green + "Language Set to: " + Settings.GetSetting("Languages", s));
                     }
@@ -333,7 +375,7 @@ namespace AdvancedTester
                 }
                 if (args.Length == 0)
                 {
-                    player.MessageFrom("AdvancedTest", red + "Usage: /areport playername - Server will test player after 3 reports");
+                    player.MessageFrom("AdvancedTest", red + "Usage: /fatest playername - Test player");
                     return;
                 }
                 string s = string.Join(" ", args);
@@ -345,6 +387,34 @@ namespace AdvancedTester
                 }
                 StartTest(p);
                 player.MessageFrom("AdvancedTest", green + "Test Started.");
+            }
+            else if (cmd == "stopfatest")
+            {
+                if (!player.Admin && !player.Moderator)
+                {
+                    return;
+                }
+                if (args.Length == 0)
+                {
+                    player.MessageFrom("AdvancedTest", red + "Usage: /stopfatest playername - Stop test");
+                    return;
+                }
+                string s = string.Join(" ", args);
+                Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
+                if (p == null)
+                {
+                    player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
+                    return;
+                }
+                if (UnderTesting.ContainsKey(p.UID))
+                {
+                    RemoveTest(p);
+                    player.MessageFrom("AdvancedTest", green + "Test Stopped.");
+                }
+                else
+                {
+                    player.MessageFrom("AdvancedTest", green + "Player isn't being tested");
+                }
             }
             else if (cmd == "areport")
             {
@@ -489,6 +559,7 @@ namespace AdvancedTester
             player.Inventory.RemoveItem(31);
             player.Inventory.AddItemTo("M4", 30);
             player.Inventory.AddItemTo("556 Ammo", 31, 250);
+            player.MessageFrom("AdvancedTest", yellow + "Type /alang to set a different language");
             player.MessageFrom("AdvancedTest", yellow + LanguageDict[TestDataP.LangCode][2]);
             player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
             player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
@@ -498,7 +569,7 @@ namespace AdvancedTester
             var timedEvent = CreateParallelTimer(1600, dict);
             timedEvent.OnFire += Callback;
             timedEvent.Start();
-            var timedEvent2 = CreateParallelTimer(500, dict);
+            var timedEvent2 = CreateParallelTimer(450, dict);
             timedEvent2.OnFire += AntiMove;
             timedEvent2.Start();
         }
@@ -556,6 +627,17 @@ namespace AdvancedTester
         {
             if (!UnderTesting.ContainsKey(player.UID))
             {
+                player.SendCommand("input.mousespeed 5");
+                player.SendCommand("input.bind Up W None");
+                player.SendCommand("input.bind Down S None");
+                player.SendCommand("input.bind Left A None");
+                player.SendCommand("input.bind Right D None");
+                player.SendCommand("input.bind Fire Mouse0 None");
+                player.SendCommand("input.bind AltFire Mouse1 none");
+                player.SendCommand("input.bind Sprint LeftShift none");
+                player.SendCommand("input.bind Duck LeftControl None");
+                player.SendCommand("input.bind Jump Space None");
+                player.SendCommand("input.bind Inventory Tab None");
                 return false;
             }
             var data = UnderTesting[player.UID];
@@ -1017,6 +1099,7 @@ namespace AdvancedTester
             public int LangCode
             {
                 get { return LanguageCode; }
+                set { LanguageCode = value; }
             }
 
             public bool RecoilComplete 
