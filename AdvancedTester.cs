@@ -36,6 +36,9 @@ namespace AdvancedTester
         public int ReportsNeeded = 3;
         public int TestAllowedEvery = 15;
         public int RecoilWait = 15;
+        public int InsertWait = 0;
+        public int F2Wait = 0;
+        public int F5Wait = 0;
         public IniParser Settings;
         public bool GeoIPSupport = false;
 
@@ -56,7 +59,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.4.9"); }
+            get { return new Version("1.5.0"); }
         }
 
         public override void Initialize()
@@ -78,6 +81,9 @@ namespace AdvancedTester
                 Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
                 Settings.AddSetting("Settings", "TestAllowedEvery", "20");
                 Settings.AddSetting("Settings", "RecoilWait", "20");
+                Settings.AddSetting("Settings", "InsertWait", "0");
+                Settings.AddSetting("Settings", "F2Wait", "0");
+                Settings.AddSetting("Settings", "F5Wait", "0");
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
                 Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
                 Settings.AddSetting("Settings", "DSNames", "HGIG,RandomDSName");
@@ -147,37 +153,47 @@ namespace AdvancedTester
                 Settings.AddSetting("Italian", "6", "Tieni premuto F5");
                 Settings.Save();
             }
-            Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
-            TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
-            RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
-            ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
-            var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
-            foreach (var x in cmds)
+            try
             {
-                RestrictedCommands.Add(x);
-            }
-            var dsnamesc = Settings.GetSetting("Settings", "DSNames").Split(Convert.ToChar(","));
-            foreach (var x in dsnamesc)
-            {
-                DSNames.Add(x);
-            }
-            var langcodes = Settings.EnumSection("Languages");
-            foreach (var x in langcodes)
-            {
-                var lang = Settings.GetSetting("Languages", x);
-                var langms = Settings.EnumSection(lang);
-                Dictionary<int, string> langmdata = new Dictionary<int, string>();
-                foreach (var y in langms)
+                Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
+                TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
+                RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
+                ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
+                InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
+                F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
+                F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
+                var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
+                foreach (var x in cmds)
                 {
-                    langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
+                    RestrictedCommands.Add(x);
                 }
-                LanguageDict[int.Parse(x)] = langmdata;
+                var dsnamesc = Settings.GetSetting("Settings", "DSNames").Split(Convert.ToChar(","));
+                foreach (var x in dsnamesc)
+                {
+                    DSNames.Add(x);
+                }
+                var langcodes = Settings.EnumSection("Languages");
+                foreach (var x in langcodes)
+                {
+                    var lang = Settings.GetSetting("Languages", x);
+                    var langms = Settings.EnumSection(lang);
+                    Dictionary<int, string> langmdata = new Dictionary<int, string>();
+                    foreach (var y in langms)
+                    {
+                        langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
+                    }
+                    LanguageDict[int.Parse(x)] = langmdata;
+                }
+                var langdata = Settings.EnumSection("LanguageData");
+                foreach (var x in langdata)
+                {
+                    var lang = Settings.GetSetting("LanguageData", x);
+                    LanguageData[x] = int.Parse(lang);
+                }
             }
-            var langdata = Settings.EnumSection("LanguageData");
-            foreach (var x in langdata)
+            catch (Exception ex)
             {
-                var lang = Settings.GetSetting("LanguageData", x);
-                LanguageData[x] = int.Parse(lang);
+                Logger.LogError("[AdvamcedTester] Failed to read the config! Fix It! " + ex);
             }
             storage = new Dictionary<ulong, Dictionary<string, int>>();
             Reports = new Dictionary<ulong, int>();
@@ -294,6 +310,9 @@ namespace AdvancedTester
                     TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
                     RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
                     ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
+                    InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
+                    F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
+                    F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
                     var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                     foreach (var x in cmds)
                     {
@@ -364,17 +383,20 @@ namespace AdvancedTester
                 if (DataStore.GetInstance().ContainsKey("RecoilTest", id))
                 {
                     Send(p, false);
-                    var n = storage[p.UID];
-                    p.Inventory.RemoveItem(30);
-                    p.Inventory.RemoveItem(31);
-                    foreach (var x in n.Keys)
+                    if (storage.ContainsKey(player.UID))
                     {
-                        p.Inventory.AddItem(x, n[x]);
+                        var n = storage[player.UID];
+                        player.Inventory.RemoveItem(30);
+                        player.Inventory.RemoveItem(31);
+                        foreach (var x in n.Keys)
+                        {
+                            player.Inventory.AddItem(x, n[x]);
+                        }
+                        storage.Remove(player.UID);
                     }
                     DataStore.GetInstance().Remove("RecoilTest", id);
                     player.MessageFrom("RecoilTest", red + "Testing ended for " + p.Name);
                     p.Notice("Recoil Test ended!");
-                    storage.Remove(p.UID);
                 }
                 else
                 {
@@ -483,6 +505,17 @@ namespace AdvancedTester
                 }
                 if (UnderTesting.ContainsKey(p.UID))
                 {
+                    if (storage.ContainsKey(player.UID))
+                    {
+                        var n = storage[player.UID];
+                        player.Inventory.RemoveItem(30);
+                        player.Inventory.RemoveItem(31);
+                        foreach (var x in n.Keys)
+                        {
+                            player.Inventory.AddItem(x, n[x]);
+                        }
+                        storage.Remove(player.UID);
+                    }
                     RemoveTest(p);
                     player.MessageFrom("AdvancedTest", green + "Test Stopped.");
                 }
@@ -915,6 +948,17 @@ namespace AdvancedTester
                         x.MessageFrom("AdvancedTest", green + player.Name + "'s ping: " + x.Ping);
                     }
                 }
+                if (storage.ContainsKey(player.UID))
+                {
+                    var n = storage[player.UID];
+                    player.Inventory.RemoveItem(30);
+                    player.Inventory.RemoveItem(31);
+                    foreach (var x in n.Keys)
+                    {
+                        player.Inventory.AddItem(x, n[x]);
+                    }
+                    storage.Remove(player.UID);
+                }
                 RemoveTest(player);
                 Fougerite.Server.GetServer().BanPlayer(player, "Console", "Auto DropTest Failed!", null, true);
                 return;
@@ -961,6 +1005,17 @@ namespace AdvancedTester
                     e.Kill();
                     return;
                 }
+                if (storage.ContainsKey(player.UID))
+                {
+                    var n = storage[player.UID];
+                    player.Inventory.RemoveItem(30);
+                    player.Inventory.RemoveItem(31);
+                    foreach (var x in n.Keys)
+                    {
+                        player.Inventory.AddItem(x, n[x]);
+                    }
+                    storage.Remove(player.UID);
+                }
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "Hack Detected! (Movement)", null, true);
             }
@@ -987,17 +1042,24 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Left F4 None");
                 player.SendCommand("input.bind Right INSERT None");
                 UnderTesting[player.UID].RecoilComplete = true;
-                var n = storage[player.UID];
-                player.Inventory.RemoveItem(30);
-                player.Inventory.RemoveItem(31);
-                foreach (var x in n.Keys)
+                if (storage.ContainsKey(player.UID))
                 {
-                    player.Inventory.AddItem(x, n[x]);
+                    var n = storage[player.UID];
+                    player.Inventory.RemoveItem(30);
+                    player.Inventory.RemoveItem(31);
+                    foreach (var x in n.Keys)
+                    {
+                        player.Inventory.AddItem(x, n[x]);
+                    }
+                    storage.Remove(player.UID);
                 }
                 Vector3 pos = (Vector3)dict["Location"];
                 dict["ButtonPos"] = pos;
                 dict["SCount"] = 0;
                 dict["SCount2"] = 0;
+                dict["INSERT"] = 0;
+                dict["F2"] = 0;
+                dict["F5"] = 0;
                 var timedEvent2 = CreateParallelTimer(1000, dict);
                 timedEvent2.OnFire += Callback5;
                 timedEvent2.Start();
@@ -1025,12 +1087,19 @@ namespace AdvancedTester
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             int SCount = (int) dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
+            int INSERT = (int)dict["INSERT"];
             player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][4]);
             var pll = player.Location;
             var dist = Vector3.Distance(pos, pll);
             if (SCount2 != 1)
             {
                 dict["SCount2"] = 1;
+            }
+            if (INSERT == InsertWait)
+            {
+                RemoveTest(player);
+                Server.GetServer().BanPlayer(player, "Console", "Insert Press Timed Out!", null, true);
+                return;
             }
             if (dist < 0.10f && dist >= 0.001f)
             {
@@ -1057,8 +1126,13 @@ namespace AdvancedTester
                 timedEvent3.Start();
                 return;
             }
+            if (InsertWait > 0)
+            {
+                INSERT++;
+            }
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
+            dict["INSERT"] = INSERT;
             var timedEvent2 = CreateParallelTimer(1000, dict);
             timedEvent2.OnFire += Callback5;
             timedEvent2.Start();
@@ -1072,12 +1146,19 @@ namespace AdvancedTester
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             int SCount = (int)dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
+            int F2 = (int)dict["F2"];
             player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][5]);
             var pll = player.Location;
             if (SCount2 != 2)
             {
                 pos = pll;
                 dict["SCount2"] = 2;
+            }
+            if (F2 == F2Wait)
+            {
+                RemoveTest(player);
+                Server.GetServer().BanPlayer(player, "Console", "F2 Press Timed Out!", null, true);
+                return;
             }
             var dist = Vector3.Distance(pos, pll);
             if (dist < 0.10f && dist >= 0.001f)
@@ -1105,8 +1186,13 @@ namespace AdvancedTester
                 timedEvent3.Start();
                 return;
             }
+            if (F2Wait > 0)
+            {
+                F2++;
+            }
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
+            dict["F2"] = F2;
             var timedEvent2 = CreateParallelTimer(1000, dict);
             timedEvent2.OnFire += Callback6;
             timedEvent2.Start();
@@ -1120,12 +1206,19 @@ namespace AdvancedTester
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             int SCount = (int)dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
+            int F5 = (int)dict["F5"];
             player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][6]);
             var pll = player.Location;
             if (SCount2 != 3)
             {
                 pos = pll;
                 dict["SCount2"] = 3;
+            }
+            if (F5 == F5Wait)
+            {
+                RemoveTest(player);
+                Server.GetServer().BanPlayer(player, "Console", "F5 Press Timed Out!", null, true);
+                return;
             }
             var dist = Vector3.Distance(pos, pll);
             if (dist < 0.10f && dist >= 0.001f)
@@ -1146,8 +1239,13 @@ namespace AdvancedTester
                 Server.GetServer().BroadcastFrom("AdvancedTest", green + player.Name + " passed all auto tests!");
                 return;
             }
+            if (F5Wait > 0)
+            {
+                F5++;
+            }
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
+            dict["F5"] = F5;
             var timedEvent2 = CreateParallelTimer(1000, dict);
             timedEvent2.OnFire += Callback7;
             timedEvent2.Start();
