@@ -945,7 +945,7 @@ namespace AdvancedTester
                 {
                     if (x.Admin || x.Moderator)
                     {
-                        x.MessageFrom("AdvancedTest", green + player.Name + "'s ping: " + x.Ping);
+                        x.MessageFrom("AdvancedTest", green + player.Name + "'s ping: " + player.Ping);
                     }
                 }
                 if (storage.ContainsKey(player.UID))
@@ -960,7 +960,7 @@ namespace AdvancedTester
                     storage.Remove(player.UID);
                 }
                 RemoveTest(player);
-                Fougerite.Server.GetServer().BanPlayer(player, "Console", "Auto DropTest Failed!", null, true);
+                Fougerite.Server.GetServer().BanPlayer(player, "Console", "Auto DropTest Failed! (Ping: " + player.Ping + ")", null, true);
                 return;
             }
             player.MessageFrom("AdvancedTest", yellow + "Drop Test Complete!");
@@ -1095,7 +1095,7 @@ namespace AdvancedTester
             {
                 dict["SCount2"] = 1;
             }
-            if (INSERT == InsertWait)
+            if (INSERT == InsertWait && InsertWait != 0)
             {
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "Insert Press Timed Out!", null, true);
@@ -1154,7 +1154,7 @@ namespace AdvancedTester
                 pos = pll;
                 dict["SCount2"] = 2;
             }
-            if (F2 == F2Wait)
+            if (F2 == F2Wait && F2Wait != 0)
             {
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "F2 Press Timed Out!", null, true);
@@ -1214,7 +1214,7 @@ namespace AdvancedTester
                 pos = pll;
                 dict["SCount2"] = 3;
             }
-            if (F5 == F5Wait)
+            if (F5 == F5Wait && F5Wait != 0)
             {
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "F5 Press Timed Out!", null, true);
