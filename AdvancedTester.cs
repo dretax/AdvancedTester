@@ -41,6 +41,7 @@ namespace AdvancedTester
         public int F5Wait = 0;
         public IniParser Settings;
         public bool GeoIPSupport = false;
+        public bool AutoTestOnJoin = false;
 
         public override string Name
         {
@@ -59,7 +60,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.5.0"); }
+            get { return new Version("1.5.2"); }
         }
 
         public override void Initialize()
@@ -87,6 +88,7 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
                 Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
                 Settings.AddSetting("Settings", "DSNames", "HGIG,RandomDSName");
+                Settings.AddSetting("Settings", "AutoTestOnJoin", "False");
                 Settings.AddSetting("Languages", "1", "English");
                 Settings.AddSetting("Languages", "2", "Hungarian");
                 Settings.AddSetting("Languages", "3", "Russian");
@@ -162,6 +164,7 @@ namespace AdvancedTester
                 InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
                 F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                 F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
+                AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                 var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                 foreach (var x in cmds)
                 {
@@ -215,6 +218,7 @@ namespace AdvancedTester
             TestPlaces.Add(new Vector3(-5520, 388, -2943));
             DataStore.GetInstance().Flush("RecoilTest");
             DataStore.GetInstance().Flush("JumpTest");
+            DataStore.GetInstance().Flush("ADVTESTAUTO");
         }
 
         public override void DeInitialize()
@@ -230,45 +234,34 @@ namespace AdvancedTester
 
         public void OnPlayerConnected(Fougerite.Player player)
         {
+            DataStore.GetInstance().Add("ADVTESTAUTO", player.UID, 1);
             if (!GeoIPSupport)
             {
                 return;
             }
-            if (DataStore.GetInstance().Get("ADVTEST", player.UID) == null)
-            {
-                Thread thread = new Thread(() => DetermineLocation(player));
-                thread.Start();
-            }
+            if (DataStore.GetInstance().Get("ADVTEST", player.UID) != null) { return;}
+            Thread thread = new Thread(() => DetermineLocation(player));
+            thread.Start();
         }
 
         internal void DetermineLocation(Fougerite.Player player)
         {
             var GeoIPS = GeoIP.GeoIP.Instance;
             var data = GeoIPS.GetDataOfIP(player.IP);
-            if (LanguageData.ContainsKey(data.Country))
-            {
-                DataStore.GetInstance().Add("ADVTEST", player.UID, LanguageData[data.Country]);
-            }
-            else
-            {
-                DataStore.GetInstance().Add("ADVTEST", player.UID, 1);
-            }
+            DataStore.GetInstance().Add("ADVTEST", player.UID, LanguageData.ContainsKey(data.Country) ? LanguageData[data.Country] : 1);
         }
 
         public void OnModulesLoaded()
         {
-            foreach (var x in Fougerite.ModuleManager.Modules)
+            foreach (var x in Fougerite.ModuleManager.Modules.Where(x => x.Plugin.Name.ToLower().Contains("geoip")))
             {
-                if (x.Plugin.Name.ToLower().Contains("geoip"))
-                {
-                    GeoIPSupport = true;
-                }
+                GeoIPSupport = true;
             }
         }
 
         public void OnChat(Fougerite.Player player, ref ChatString text)
         {
-            if (text.OriginalMessage.ToLower().Contains("hacker"))
+            if (text.OriginalMessage.ToLower().Contains("hack"))
             {
                 player.Notice("If you see a hacker, report him using /areport name - 3 votes = AutoTest!");
             }
@@ -276,11 +269,9 @@ namespace AdvancedTester
 
         public void OnPlayerDisconnected(Fougerite.Player player)
         {
-            if (UnderTesting.ContainsKey(player.UID))
-            {
-                Server.GetServer().BanPlayer(player, "Console", "Disconnecting from AdvancedTest", null, true);
-                RemoveTest(player, true);
-            }
+            if (!UnderTesting.ContainsKey(player.UID)) { return;}
+            Server.GetServer().BanPlayer(player, "Console", "Disconnecting from AdvancedTest", null, true);
+            RemoveTest(player, true);
         }
 
         public void OnPlayerHurt(HurtEvent he)
@@ -301,317 +292,339 @@ namespace AdvancedTester
 
         public void On_Command(Fougerite.Player player, string cmd, string[] args)
         {
-            if (cmd == "advancedtest")
+            switch (cmd)
             {
-                player.MessageFrom("AdvancedTest", green + "AdvancedTest " + yellow + " V" + Version + " [COLOR#FFFFFF] By DreTaX");
-                if (player.Admin)
+                case "advancedtest":
                 {
-                    Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
-                    TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
-                    RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
-                    ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
-                    InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
-                    F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
-                    F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
-                    var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
-                    foreach (var x in cmds)
+                    player.MessageFrom("AdvancedTest", green + "AdvancedTest " + yellow + " V" + Version + " [COLOR#FFFFFF] By DreTaX");
+                    if (player.Admin)
                     {
-                        RestrictedCommands.Add(x);
-                    }
-                    var langcodes = Settings.EnumSection("Languages");
-                    foreach (var x in langcodes)
-                    {
-                        var lang = Settings.GetSetting("Languages", x);
-                        var langms = Settings.EnumSection(lang);
-                        Dictionary<int, string> langmdata = new Dictionary<int, string>();
-                        foreach (var y in langms)
+                        Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
+                        TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
+                        RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
+                        ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
+                        InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
+                        F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
+                        F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
+                        AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
+                        var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
+                        foreach (var x in cmds)
                         {
-                            langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
+                            RestrictedCommands.Add(x);
                         }
-                        LanguageDict[int.Parse(x)] = langmdata;
-                    }
-                }
-            }
-            else if (cmd == "alang")
-            {
-                if (args.Length == 0)
-                {
-                    var langcodes = Settings.EnumSection("Languages");
-                    string langs = langcodes.Aggregate("",
-                        (current, x) => current + x + "=" + Settings.GetSetting("Languages", x) + ", ");
-                    player.MessageFrom("AdvancedTest", green + "Usage /alang number");
-                    player.MessageFrom("AdvancedTest", langs);
-                }
-                else
-                {
-                    string s = string.Join(" ", args);
-                    int i;
-                    if (Settings.GetSetting("Languages", s) != null && int.TryParse(s, out i))
-                    {
-                        if (UnderTesting.ContainsKey(player.UID))
+                        var langcodes = Settings.EnumSection("Languages");
+                        foreach (var x in langcodes)
                         {
-                            UnderTesting[player.UID].LangCode = i;
+                            var lang = Settings.GetSetting("Languages", x);
+                            var langms = Settings.EnumSection(lang);
+                            Dictionary<int, string> langmdata = new Dictionary<int, string>();
+                            foreach (var y in langms)
+                            {
+                                langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
+                            }
+                            LanguageDict[int.Parse(x)] = langmdata;
                         }
-                        DataStore.GetInstance().Add("ADVTEST", player.UID, i);
-                        player.MessageFrom("AdvancedTest", green + "Language Set to: " + Settings.GetSetting("Languages", s));
+                    }
+                    break;
+                }
+                case "alang":
+                {
+                    if (args.Length == 0)
+                    {
+                        var langcodes = Settings.EnumSection("Languages");
+                        string langs = langcodes.Aggregate("",
+                            (current, x) => current + x + "=" + Settings.GetSetting("Languages", x) + ", ");
+                        player.MessageFrom("AdvancedTest", green + "Usage /alang number");
+                        player.MessageFrom("AdvancedTest", langs);
                     }
                     else
                     {
-                        player.MessageFrom("AdvancedTest", red + "Entered Value doesn't exist or It's not a number!");
-                    }
-                }
-            }
-            else if (cmd.Equals("recoiltest"))
-            {
-                if (!player.Admin && !player.Moderator)
-                {
-                    return;
-                }
-                if (args.Length == 0)
-                {
-                    player.MessageFrom("RecoilTest", red + "Usage: /recoiltest playername - To Start/Stop Testing");
-                    return;
-                }
-                string s = string.Join(" ", args);
-                Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
-                if (p == null)
-                {
-                    player.MessageFrom("RecoilTest", red + "Couldn't find " + s + "!");
-                    return;
-                }
-                ulong id = p.UID;
-                if (DataStore.GetInstance().ContainsKey("RecoilTest", id))
-                {
-                    Send(p, false);
-                    if (storage.ContainsKey(player.UID))
-                    {
-                        var n = storage[player.UID];
-                        player.Inventory.RemoveItem(30);
-                        player.Inventory.RemoveItem(31);
-                        foreach (var x in n.Keys)
+                        string s = string.Join(" ", args);
+                        int i;
+                        if (Settings.GetSetting("Languages", s) != null && int.TryParse(s, out i))
                         {
-                            player.Inventory.AddItem(x, n[x]);
+                            if (UnderTesting.ContainsKey(player.UID))
+                            {
+                                UnderTesting[player.UID].LangCode = i;
+                            }
+                            DataStore.GetInstance().Add("ADVTEST", player.UID, i);
+                            player.MessageFrom("AdvancedTest",
+                                green + "Language Set to: " + Settings.GetSetting("Languages", s));
                         }
-                        storage.Remove(player.UID);
-                    }
-                    DataStore.GetInstance().Remove("RecoilTest", id);
-                    player.MessageFrom("RecoilTest", red + "Testing ended for " + p.Name);
-                    p.Notice("Recoil Test ended!");
-                }
-                else
-                {
-                    player.MessageFrom("RecoilTest", red + "Testing started for " + p.Name);
-                    player.MessageFrom("RecoilTest", red + "/recoiltest name - to finish");
-                    Send(p);
-                    Dictionary<string, int> itemcount = new Dictionary<string, int>();
-                    p.MessageFrom("RecoilTest", red + "=== Recoil Test ===");
-                    p.MessageFrom("RecoilTest", red + p.Name + "'s two hotbar items were: ");
-                    if (!p.Inventory.BarItems[0].IsEmpty())
-                    {
-                        itemcount[p.Inventory.BarItems[0].Name] = p.Inventory.BarItems[0].Quantity;
-                        player.MessageFrom("RecoilTest", red + p.Inventory.BarItems[0].Name + " / " + p.Inventory.BarItems[0].Quantity);
-                    }
-                    if (!p.Inventory.BarItems[1].IsEmpty())
-                    {
-                        itemcount[p.Inventory.BarItems[1].Name] = p.Inventory.BarItems[1].Quantity;
-                        player.MessageFrom("RecoilTest", red + p.Inventory.BarItems[1].Name + " / " + p.Inventory.BarItems[1].Quantity);
-                    }
-                    storage[p.UID] = itemcount;
-                    p.Inventory.RemoveItem(30);
-                    p.Inventory.RemoveItem(31);
-                    p.Inventory.AddItemTo("M4", 30);
-                    p.Inventory.AddItemTo("556 Ammo", 31, 100);
-                    DataStore.GetInstance().Add("RecoilTest", id, "1");
-                    p.Notice("You are being tested for recoil!");
-                    p.MessageFrom("RecoilTest", red + "=== Recoil Test ===");
-                    p.MessageFrom("RecoilTest", red + "Take the M4, reload It and start shooting!");
-                }
-            }
-            else if (cmd.Equals("jumptest"))
-            {
-                if (!player.Admin && !player.Moderator)
-                {
-                    return;
-                }
-                if (args.Length == 0)
-                {
-                    player.MessageFrom("JumpTest", red + "Usage: /jumptest playername - To Start/Stop Testing");
-                    return;
-                }
-                string s = string.Join(" ", args);
-                Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
-                if (p == null)
-                {
-                    player.MessageFrom("JumpTest", red + "Couldn't find " + s + "!");
-                    return;
-                }
-                ulong id = p.UID;
-                if (DataStore.GetInstance().ContainsKey("JumpTest", id))
-                {
-                    Send2(p, false);
-                    DataStore.GetInstance().Remove("JumpTest", id);
-                    player.MessageFrom("JumpTest", red + "Testing ended for " + p.Name);
-                    p.Notice("Jump Test ended!");
-                }
-                else
-                {
-                    Send2(p);
-                    DataStore.GetInstance().Add("JumpTest", id, "1");
-                    player.MessageFrom("JumpTest", red + "Testing started for " + p.Name);
-                    player.MessageFrom("JumpTest", red + "/jumptest name - to finish");
-                    p.Notice("You are being tested for jump hacks!");
-                    p.MessageFrom("RecoilTest", red + "=== Jump Test ===");
-                    p.MessageFrom("RecoilTest", red + "Start jumping rapidly!");
-                }
-            }
-            else if (cmd == "fatest")
-            {
-                if (!player.Admin && !player.Moderator)
-                {
-                    return;
-                }
-                if (args.Length == 0)
-                {
-                    player.MessageFrom("AdvancedTest", red + "Usage: /fatest playername - Test player");
-                    return;
-                }
-                string s = string.Join(" ", args);
-                Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
-                if (p == null)
-                {
-                    player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
-                    return;
-                }
-                StartTest(p);
-                player.MessageFrom("AdvancedTest", green + "Test Started.");
-            }
-            else if (cmd == "stopfatest")
-            {
-                if (!player.Admin && !player.Moderator)
-                {
-                    return;
-                }
-                if (args.Length == 0)
-                {
-                    player.MessageFrom("AdvancedTest", red + "Usage: /stopfatest playername - Stop test");
-                    return;
-                }
-                string s = string.Join(" ", args);
-                Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
-                if (p == null)
-                {
-                    player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
-                    return;
-                }
-                if (UnderTesting.ContainsKey(p.UID))
-                {
-                    if (storage.ContainsKey(player.UID))
-                    {
-                        var n = storage[player.UID];
-                        player.Inventory.RemoveItem(30);
-                        player.Inventory.RemoveItem(31);
-                        foreach (var x in n.Keys)
+                        else
                         {
-                            player.Inventory.AddItem(x, n[x]);
+                            player.MessageFrom("AdvancedTest", red + "Entered Value doesn't exist or It's not a number!");
                         }
-                        storage.Remove(player.UID);
+
                     }
-                    RemoveTest(p);
-                    player.MessageFrom("AdvancedTest", green + "Test Stopped.");
+                    break;
                 }
-                else
+                case "alangflush":
                 {
-                    player.MessageFrom("AdvancedTest", green + "Player isn't being tested");
-                }
-            }
-            else if (cmd == "areport")
-            {
-                if (args.Length == 0)
-                {
-                    player.MessageFrom("AdvancedTest", red + "Usage: /areport playername - Server will test player after 3 reports");
-                    return;
-                }
-                string s = string.Join(" ", args);
-                Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
-                if (p == null)
-                {
-                    player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
-                    return;
-                }
-                if (p.Admin || p.Moderator)
-                {
-                    player.MessageFrom("AdvancedTest", red + "Admins cannot be tested!");
-                    return;
-                }
-                if (DSNames.Any(x => DataStore.GetInstance().ContainsKey(x, p.UID) ||
-                                     DataStore.GetInstance().ContainsKey(x, p.SteamID)))
-                {
-                    player.MessageFrom("AdvancedTest", red + "Player cannot be tested this time, wait a bit!");
-                    return;
-                }
-                if (TestCooldown.ContainsKey(p.UID))
-                {
-                    var ticks = TestCooldown[p.UID];
-                    var calc = System.Environment.TickCount - ticks;
-                    var time = TestCooldown[p.UID];
-                    if (calc > 0 || !double.IsNaN(calc) || !double.IsNaN(ticks))
+                    if (player.Admin)
                     {
-                        var done = Math.Round((float) ((calc/1000)/60));
-                        player.MessageFrom("AdvancedTest",
-                            "Player has report cooldown for: " + (time - done) + " minutes!");
+                        DataStore.GetInstance().Flush("ADVTEST");
+                        player.MessageFrom("AdvancedTest", "Flushed!");
+                    }
+                    break;
+                }
+                case "recoiltest":
+                {
+                    if (!player.Admin && !player.Moderator)
+                    {
                         return;
                     }
-                    if (calc < (TestAllowedEvery + time)*60000)
+                    if (args.Length == 0)
                     {
-                        var done = Math.Round((float) ((calc/1000)/60));
-                        player.MessageFrom("AdvancedTest",
-                            "Player has report cooldown for: " + (time - done) + " minutes!");
+                        player.MessageFrom("RecoilTest", red + "Usage: /recoiltest playername - To Start/Stop Testing");
                         return;
                     }
-                }
-                if (UnderTesting.ContainsKey(p.UID))
-                {
-                    player.MessageFrom("AdvancedTest", "Player is currently being tested!");
-                    return;
-                }
-                if (ReportC.ContainsKey(p.UID))
-                {
-                    var list = ReportC[p.UID];
-                    if (list.Contains(player.UID))
+                    string s = string.Join(" ", args);
+                    Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
+                    if (p == null)
                     {
-                        player.MessageFrom("AdvancedTest", "Already Reported!");
+                        player.MessageFrom("RecoilTest", red + "Couldn't find " + s + "!");
                         return;
                     }
-                    list.Add(player.UID);
-                    ReportC[p.UID] = list;
+                    ulong id = p.UID;
+                    if (DataStore.GetInstance().ContainsKey("RecoilTest", id))
+                    {
+                        Send(p, false);
+                        if (storage.ContainsKey(player.UID))
+                        {
+                            var n = storage[player.UID];
+                            player.Inventory.RemoveItem(30);
+                            player.Inventory.RemoveItem(31);
+                            foreach (var x in n.Keys)
+                            {
+                                player.Inventory.AddItem(x, n[x]);
+                            }
+                            storage.Remove(player.UID);
+                        }
+                        DataStore.GetInstance().Remove("RecoilTest", id);
+                        player.MessageFrom("RecoilTest", red + "Testing ended for " + p.Name);
+                        p.Notice("Recoil Test ended!");
+                    }
+                    else
+                    {
+                        player.MessageFrom("RecoilTest", red + "Testing started for " + p.Name);
+                        player.MessageFrom("RecoilTest", red + "/recoiltest name - to finish");
+                        Send(p);
+                        Dictionary<string, int> itemcount = new Dictionary<string, int>();
+                        p.MessageFrom("RecoilTest", red + "=== Recoil Test ===");
+                        p.MessageFrom("RecoilTest", red + p.Name + "'s two hotbar items were: ");
+                        if (!p.Inventory.BarItems[0].IsEmpty())
+                        {
+                            itemcount[p.Inventory.BarItems[0].Name] = p.Inventory.BarItems[0].Quantity;
+                            player.MessageFrom("RecoilTest", red + p.Inventory.BarItems[0].Name + " / " + p.Inventory.BarItems[0].Quantity);
+                        }
+                        if (!p.Inventory.BarItems[1].IsEmpty())
+                        {
+                            itemcount[p.Inventory.BarItems[1].Name] = p.Inventory.BarItems[1].Quantity;
+                            player.MessageFrom("RecoilTest", red + p.Inventory.BarItems[1].Name + " / " + p.Inventory.BarItems[1].Quantity);
+                        }
+                        storage[p.UID] = itemcount;
+                        p.Inventory.RemoveItem(30);
+                        p.Inventory.RemoveItem(31);
+                        p.Inventory.AddItemTo("M4", 30);
+                        p.Inventory.AddItemTo("556 Ammo", 31, 100);
+                        DataStore.GetInstance().Add("RecoilTest", id, "1");
+                        p.Notice("You are being tested for recoil!");
+                        p.MessageFrom("RecoilTest", red + "=== Recoil Test ===");
+                        p.MessageFrom("RecoilTest", red + "Take the M4, reload It and start shooting!");
+                    }
+                    break;
                 }
-                else
+                case "jumptest":
                 {
-                    var list = new List<ulong>();
-                    list.Add(player.UID);
-                    ReportC[p.UID] = list;
+                    if (!player.Admin && !player.Moderator)
+                    {
+                        return;
+                    }
+                    if (args.Length == 0)
+                    {
+                        player.MessageFrom("JumpTest", red + "Usage: /jumptest playername - To Start/Stop Testing");
+                        return;
+                    }
+                    string s = string.Join(" ", args);
+                    Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
+                    if (p == null)
+                    {
+                        player.MessageFrom("JumpTest", red + "Couldn't find " + s + "!");
+                        return;
+                    }
+                    ulong id = p.UID;
+                    if (DataStore.GetInstance().ContainsKey("JumpTest", id))
+                    {
+                        Send2(p, false);
+                        DataStore.GetInstance().Remove("JumpTest", id);
+                        player.MessageFrom("JumpTest", red + "Testing ended for " + p.Name);
+                        p.Notice("Jump Test ended!");
+                    }
+                    else
+                    {
+                        Send2(p);
+                        DataStore.GetInstance().Add("JumpTest", id, "1");
+                        player.MessageFrom("JumpTest", red + "Testing started for " + p.Name);
+                        player.MessageFrom("JumpTest", red + "/jumptest name - to finish");
+                        p.Notice("You are being tested for jump hacks!");
+                        p.MessageFrom("RecoilTest", red + "=== Jump Test ===");
+                        p.MessageFrom("RecoilTest", red + "Start jumping rapidly!");
+                    }
+                    break;
                 }
-                if (!Reports.ContainsKey(p.UID))
+                case "fatest":
                 {
-                    Reports[p.UID] = 1;
-                    player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( 1/" + ReportsNeeded + " )");
-                    return;
-                }
-                Reports[p.UID] = Reports[p.UID] + 1;
-                if (Reports[p.UID] == 3)
-                {
-                    Server.GetServer().BroadcastFrom("AdvancedTest", red + p.Name + " received enough reports. Auto test is starting.");
+                    if (!player.Admin && !player.Moderator)
+                    {
+                        return;
+                    }
+                    if (args.Length == 0)
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Usage: /fatest playername - Test player");
+                        return;
+                    }
+                    string s = string.Join(" ", args);
+                    Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
+                    if (p == null)
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
+                        return;
+                    }
                     StartTest(p);
+                    player.MessageFrom("AdvancedTest", green + "Test Started.");
+                    break;
                 }
-                else
+                case "stopfatest":
                 {
-                    player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( " + Reports[p.UID] + "/" + ReportsNeeded + " )");
+                    if (!player.Admin && !player.Moderator)
+                    {
+                        return;
+                    }
+                    if (args.Length == 0)
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Usage: /stopfatest playername - Stop test");
+                        return;
+                    }
+                    string s = string.Join(" ", args);
+                    Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
+                    if (p == null)
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
+                        return;
+                    }
+                    if (UnderTesting.ContainsKey(p.UID))
+                    {
+                        if (storage.ContainsKey(player.UID))
+                        {
+                            var n = storage[player.UID];
+                            player.Inventory.RemoveItem(30);
+                            player.Inventory.RemoveItem(31);
+                            foreach (var x in n.Keys)
+                            {
+                                player.Inventory.AddItem(x, n[x]);
+                            }
+                            storage.Remove(player.UID);
+                        }
+                        RemoveTest(p);
+                        player.MessageFrom("AdvancedTest", green + "Test Stopped.");
+                    }
+                    else
+                    {
+                        player.MessageFrom("AdvancedTest", green + "Player isn't being tested");
+                    }
+                    break;
+                }
+                case "areport":
+                {
+                    if (args.Length == 0)
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Usage: /areport playername - Server will test player after 3 reports");
+                        return;
+                    }
+                    string s = string.Join(" ", args);
+                    Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
+                    if (p == null)
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
+                        return;
+                    }
+                    if (p.Admin || p.Moderator)
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Admins cannot be tested!");
+                        return;
+                    }
+                    if (DSNames.Any(x => DataStore.GetInstance().ContainsKey(x, p.UID) ||
+                                         DataStore.GetInstance().ContainsKey(x, p.SteamID)))
+                    {
+                        player.MessageFrom("AdvancedTest", red + "Player cannot be tested this time, wait a bit!");
+                        return;
+                    }
+                    if (TestCooldown.ContainsKey(p.UID))
+                    {
+                        var ticks = TestCooldown[p.UID];
+                        var calc = System.Environment.TickCount - ticks;
+                        if (calc > 0 || !double.IsNaN(calc) || !double.IsNaN(ticks))
+                        {
+                            var done = Math.Round((float) ((calc/1000)/60));
+                            player.MessageFrom("AdvancedTest",
+                                "Player has report cooldown for: " + (ticks - done) + " minutes!");
+                            return;
+                        }
+                        if (calc < TestAllowedEvery * 60000)
+                        {
+                            var done = Math.Round((float) ((calc/1000)/60));
+                            player.MessageFrom("AdvancedTest",
+                                "Player has report cooldown for: " + (ticks - done) + " minutes!");
+                            return;
+                        }
+                    }
+                    if (UnderTesting.ContainsKey(p.UID))
+                    {
+                        player.MessageFrom("AdvancedTest", "Player is currently being tested!");
+                        return;
+                    }
+                    if (ReportC.ContainsKey(p.UID))
+                    {
+                        var list = ReportC[p.UID];
+                        if (list.Contains(player.UID))
+                        {
+                            player.MessageFrom("AdvancedTest", "Already Reported!");
+                            return;
+                        }
+                        list.Add(player.UID);
+                        ReportC[p.UID] = list;
+                    }
+                    else
+                    {
+                        var list = new List<ulong>();
+                        list.Add(player.UID);
+                        ReportC[p.UID] = list;
+                    }
+                    if (!Reports.ContainsKey(p.UID))
+                    {
+                        Reports[p.UID] = 1;
+                        player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( 1/" + ReportsNeeded + " )");
+                        return;
+                    }
+                    Reports[p.UID] = Reports[p.UID] + 1;
+                    if (Reports[p.UID] == 3)
+                    {
+                        Server.GetServer().BroadcastFrom("AdvancedTest", red + p.Name + " received enough reports. Auto test is starting.");
+                        StartTest(p);
+                    }
+                    else
+                    {
+                        player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( " + Reports[p.UID] + "/" + ReportsNeeded + " )");
+                    }
+                    break;
                 }
             }
         }
 
         public void StartTest(Fougerite.Player player)
         {
+            SendAutoTest(player);
             foreach (var x in RestrictedCommands)
             {
                 player.RestrictCommand(x);
@@ -647,7 +660,6 @@ namespace AdvancedTester
                 OccupiedPositions[x] = player.UID;
             }
             player.TeleportTo(pos, false);
-            SendAutoTest(player);
             int lang = 1;
             if (DataStore.GetInstance().Get("ADVTEST", player.UID) != null)
             {
@@ -693,10 +705,6 @@ namespace AdvancedTester
             if (!Disconnected)
             {
                 SendAutoTest(player, false);
-                if (TestCooldown.ContainsKey(player.UID))
-                {
-                    TestCooldown.Remove(player.UID);
-                }
                 if (LastPos.ContainsKey(player.UID))
                 {
                     player.TeleportTo(LastPos[player.UID], false);
@@ -734,6 +742,15 @@ namespace AdvancedTester
             {
                 Send2(player, false);
                 DataStore.GetInstance().Remove("JumpTest", player.UID);
+            }
+            if (AutoTestOnJoin && DataStore.GetInstance().Get("ADVTESTAUTO", player.UID) != null)
+            {
+                DataStore.GetInstance().Remove("ADVTESTAUTO", player.UID);
+                var dict = new Dictionary<string, object>();
+                dict["Player"] = player;
+                var timedEvent = CreateParallelTimer(2000, dict);
+                timedEvent.OnFire += SpawnDelay;
+                timedEvent.Start();
             }
         }
 
@@ -907,6 +924,17 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Jump Space None");
                 player.SendCommand("input.bind Inventory Tab None");
             }
+        }
+
+        public void SpawnDelay(AdvancedTesterTE e)
+        {
+            var dict = e.Args;
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            if (!player.IsOnline)
+            {
+                return;
+            }
+            StartTest(player);
         }
 
         public void AntiMove(AdvancedTesterTE e)
@@ -1088,7 +1116,10 @@ namespace AdvancedTester
             int SCount = (int) dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
             int INSERT = (int)dict["INSERT"];
-            player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][4]);
+            if (InsertWait == 0)
+            {
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][4]);
+            }
             var pll = player.Location;
             var dist = Vector3.Distance(pos, pll);
             if (SCount2 != 1)
@@ -1129,6 +1160,7 @@ namespace AdvancedTester
             if (InsertWait > 0)
             {
                 INSERT++;
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][4] + " ( " + INSERT + "/" + InsertWait + " )");
             }
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
@@ -1147,8 +1179,11 @@ namespace AdvancedTester
             int SCount = (int)dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
             int F2 = (int)dict["F2"];
-            player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][5]);
             var pll = player.Location;
+            if (F2Wait == 0)
+            {
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][5]);
+            }
             if (SCount2 != 2)
             {
                 pos = pll;
@@ -1188,6 +1223,7 @@ namespace AdvancedTester
             }
             if (F2Wait > 0)
             {
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][5] + " ( " + F2 + "/" + F2Wait + " )");
                 F2++;
             }
             dict["ButtonPos"] = pll;
@@ -1207,8 +1243,11 @@ namespace AdvancedTester
             int SCount = (int)dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
             int F5 = (int)dict["F5"];
-            player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][6]);
             var pll = player.Location;
+            if (F5 == 0)
+            {
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][6]);
+            }
             if (SCount2 != 3)
             {
                 pos = pll;
@@ -1241,6 +1280,7 @@ namespace AdvancedTester
             }
             if (F5Wait > 0)
             {
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][6] + " ( " + F5 + "/" + F5Wait + " )");
                 F5++;
             }
             dict["ButtonPos"] = pll;
