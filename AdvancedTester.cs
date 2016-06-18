@@ -928,6 +928,7 @@ namespace AdvancedTester
 
         public void SpawnDelay(AdvancedTesterTE e)
         {
+            e.Kill();
             var dict = e.Args;
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             if (!player.IsOnline)
