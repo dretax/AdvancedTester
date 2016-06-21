@@ -31,6 +31,9 @@ namespace AdvancedTester
         public Dictionary<ulong, List<ulong>> ReportC;
         public Dictionary<string, int> LanguageData;
         public Dictionary<int, Dictionary<int, string>> LanguageDict;
+        public Dictionary<ulong, Angle2> Angles;
+        public Dictionary<ulong, int> AnglesC;
+        public Dictionary<ulong, Dictionary<string, object>> TData; 
         public List<string> DSNames; 
         public List<string> RestrictedCommands; 
         public int ReportsNeeded = 3;
@@ -42,6 +45,7 @@ namespace AdvancedTester
         public IniParser Settings;
         public bool GeoIPSupport = false;
         public bool AutoTestOnJoin = false;
+        public bool DropTest = false;
 
         public override string Name
         {
@@ -60,7 +64,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.5.2"); }
+            get { return new Version("1.5.3"); }
         }
 
         public override void Initialize()
@@ -72,6 +76,7 @@ namespace AdvancedTester
             Fougerite.Hooks.OnPlayerDisconnected += OnPlayerDisconnected;
             Fougerite.Hooks.OnChat += OnChat;
             Fougerite.Hooks.OnModulesLoaded += OnModulesLoaded;
+            Fougerite.Hooks.OnShoot += OnShoot;
             RestrictedCommands = new List<string>();
             DSNames = new List<string>();
             LanguageDict = new Dictionary<int, Dictionary<int, string>>();
@@ -86,6 +91,7 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "F2Wait", "0");
                 Settings.AddSetting("Settings", "F5Wait", "0");
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
+                Settings.AddSetting("Settings", "DropTest", "True");
                 Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
                 Settings.AddSetting("Settings", "DSNames", "HGIG,RandomDSName");
                 Settings.AddSetting("Settings", "AutoTestOnJoin", "False");
@@ -165,6 +171,7 @@ namespace AdvancedTester
                 F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                 F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
                 AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
+                DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                 var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                 foreach (var x in cmds)
                 {
@@ -205,6 +212,9 @@ namespace AdvancedTester
             TestCooldown = new Dictionary<ulong, int>();
             LastPos = new Dictionary<ulong, Vector3>();
             ReportC = new Dictionary<ulong, List<ulong>>();
+            Angles = new Dictionary<ulong, Angle2>();
+            TData = new Dictionary<ulong, Dictionary<string, object>>();
+            AnglesC = new Dictionary<ulong, int>();
             TestPlaces = new List<Vector3>();
             TestPlaces.Add(new Vector3(-5599, 403, -2989));
             TestPlaces.Add(new Vector3(-5594, 403, -2985));
@@ -230,6 +240,64 @@ namespace AdvancedTester
             Fougerite.Hooks.OnPlayerDisconnected -= OnPlayerDisconnected;
             Fougerite.Hooks.OnChat -= OnChat;
             Fougerite.Hooks.OnModulesLoaded -= OnModulesLoaded;
+            Fougerite.Hooks.OnShoot -= OnShoot;
+        }
+
+        public void OnShoot(ShootEvent shootevent)
+        {
+            if (shootevent.Player != null)
+            {
+                if (!Angles.ContainsKey(shootevent.Player.UID) || !UnderTesting.ContainsKey(shootevent.Player.UID))
+                {
+                    return;
+                }
+                shootevent.IBulletWeaponItem.clipAmmo = 24;
+                var player = shootevent.Player;
+                Character c = player.PlayerClient.netUser.playerClient.controllable.character;
+                var eyeangles = c.eyesAngles;
+                if (Angles[player.UID] == eyeangles)
+                {
+                    if (AnglesC[player.UID] < 2)
+                    {
+                        AnglesC[player.UID] = AnglesC[player.UID] + 1;
+                    }
+                    else
+                    {
+                        RemoveTest(player);
+                        Server.GetServer().BanPlayer(player, "Console", "NoRecoil", null, true);
+                    }
+                }
+                else
+                {
+                    player.SendCommand("input.bind Up F4 None");
+                    player.SendCommand("input.bind Down F4 None");
+                    player.SendCommand("input.bind Left F4 None");
+                    player.SendCommand("input.bind Right INSERT None");
+                    UnderTesting[player.UID].RecoilComplete = true;
+                    if (storage.ContainsKey(player.UID))
+                    {
+                        var n = storage[player.UID];
+                        player.Inventory.RemoveItem(30);
+                        player.Inventory.RemoveItem(31);
+                        foreach (var x in n.Keys)
+                        {
+                            player.Inventory.AddItem(x, n[x]);
+                        }
+                        storage.Remove(player.UID);
+                    }
+                    var dict = TData[player.UID];
+                    Vector3 pos = (Vector3)dict["Location"];
+                    dict["ButtonPos"] = pos;
+                    dict["SCount"] = 0;
+                    dict["SCount2"] = 0;
+                    dict["INSERT"] = 0;
+                    dict["F2"] = 0;
+                    dict["F5"] = 0;
+                    var timedEvent2 = CreateParallelTimer(1000, dict);
+                    timedEvent2.OnFire += Callback5;
+                    timedEvent2.Start();
+                }
+            }
         }
 
         public void OnPlayerConnected(Fougerite.Player player)
@@ -307,6 +375,7 @@ namespace AdvancedTester
                         F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                         F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
                         AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
+                        DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                         var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                         foreach (var x in cmds)
                         {
@@ -692,7 +761,7 @@ namespace AdvancedTester
             player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
             var dict = new  Dictionary<string, object>();
             dict["Player"] = player;
-            var timedEvent = CreateParallelTimer(1600, dict);
+            var timedEvent = CreateParallelTimer(2500, dict);
             timedEvent.OnFire += Callback;
             timedEvent.Start();
             var timedEvent2 = CreateParallelTimer(450, dict);
@@ -718,6 +787,18 @@ namespace AdvancedTester
             if (ReportC.ContainsKey(player.UID))
             {
                 ReportC.Remove(player.UID);
+            }
+            if (TData.ContainsKey(player.UID))
+            {
+                TData.Remove(player.UID);
+            }
+            if (Angles.ContainsKey(player.UID))
+            {
+                Angles.Remove(player.UID);
+            }
+            if (AnglesC.ContainsKey(player.UID))
+            {
+                AnglesC.Remove(player.UID);
             }
             if (UnderTesting.ContainsKey(player.UID))
             {
@@ -954,12 +1035,19 @@ namespace AdvancedTester
             var dict = e.Args;
             e.Kill();
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
-            dict["Location"] = player.Location;
-            player.TeleportTo(player.X, player.Y + 35f, player.Z);
+            var loc = player.Location;
+            dict["Location"] = loc;
+            if (DropTest)
+            {
+                player.TeleportTo(loc.x, loc.y + 35f, loc.z);
+            }
+            else
+            {
+                UnderTesting[player.UID].FallComplete = true;
+            }
             var timedEvent = CreateParallelTimer(3500, dict);
             timedEvent.OnFire += Callback2;
             timedEvent.Start();
-
         }
 
         public void Callback2(AdvancedTesterTE e)
@@ -1003,11 +1091,14 @@ namespace AdvancedTester
             timedEvent.OnFire += Callback3;
             timedEvent.Start();
 
-            dict["Angle"] = eyeangles;
+            //dict["Angle"] = eyeangles;
+            Angles[player.UID] = eyeangles;
+            AnglesC[player.UID] = 0;
             dict["Count"] = 0;
             var timedEvent2 = CreateParallelTimer(2000, dict);
             timedEvent2.OnFire += Callback4;
             timedEvent2.Start();
+            TData[player.UID] = dict;
         }
 
         public void Callback3(AdvancedTesterTE e)
@@ -1057,8 +1148,13 @@ namespace AdvancedTester
             var dict = e.Args;
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             int count = (int)dict["Count"];
-            Angle2 angle = (Angle2) dict["Angle"];
-            Character c = player.PlayerClient.netUser.playerClient.controllable.character;
+            //Angle2 angle = (Angle2) dict["Angle"];
+            if (UnderTesting[player.UID].RecoilComplete)
+            {
+                return;
+            }
+            count++;
+            /*Character c = player.PlayerClient.netUser.playerClient.controllable.character;
             var eyeangles = c.eyesAngles;
             if (angle == eyeangles)
             {
@@ -1093,13 +1189,13 @@ namespace AdvancedTester
                 timedEvent2.OnFire += Callback5;
                 timedEvent2.Start();
                 return;
-            }
+            }*/
 
             player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3] + " ( " + count + "/" + RecoilWait + " )");
             if (count == RecoilWait)
             {
                 RemoveTest(player);
-                Server.GetServer().BanPlayer(player, "Console", "Having NoRecoil!", null, true);
+                Server.GetServer().BanPlayer(player, "Console", "Recoil Timed out!", null, true);
                 return;
             }
             dict["Count"] = count;
