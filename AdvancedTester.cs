@@ -45,7 +45,8 @@ namespace AdvancedTester
         public IniParser Settings;
         public bool GeoIPSupport = false;
         public bool AutoTestOnJoin = false;
-        public bool DropTest = false;
+        public bool DropTest = true;
+        public int IgnoreDropIfPing = 170;
 
         public override string Name
         {
@@ -64,7 +65,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.5.3"); }
+            get { return new Version("1.5.4"); }
         }
 
         public override void Initialize()
@@ -95,6 +96,7 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
                 Settings.AddSetting("Settings", "DSNames", "HGIG,RandomDSName");
                 Settings.AddSetting("Settings", "AutoTestOnJoin", "False");
+                Settings.AddSetting("Settings", "IgnoreDropIfPing", "170");
                 Settings.AddSetting("Languages", "1", "English");
                 Settings.AddSetting("Languages", "2", "Hungarian");
                 Settings.AddSetting("Languages", "3", "Russian");
@@ -170,6 +172,7 @@ namespace AdvancedTester
                 InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
                 F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                 F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
+                IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                 AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                 DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                 var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
@@ -203,7 +206,7 @@ namespace AdvancedTester
             }
             catch (Exception ex)
             {
-                Logger.LogError("[AdvamcedTester] Failed to read the config! Fix It! " + ex);
+                Logger.LogError("[AdvancedTester] Failed to read the config! Fix It! " + ex);
             }
             storage = new Dictionary<ulong, Dictionary<string, int>>();
             Reports = new Dictionary<ulong, int>();
@@ -248,6 +251,10 @@ namespace AdvancedTester
             if (shootevent.Player != null)
             {
                 if (!Angles.ContainsKey(shootevent.Player.UID) || !UnderTesting.ContainsKey(shootevent.Player.UID))
+                {
+                    return;
+                }
+                if (!shootevent.BulletWeaponDataBlock.name.ToLower().Contains("m4"))
                 {
                     return;
                 }
@@ -331,7 +338,7 @@ namespace AdvancedTester
         {
             if (text.OriginalMessage.ToLower().Contains("hack"))
             {
-                player.Notice("If you see a hacker, report him using /areport name - 3 votes = AutoTest!");
+                player.Notice("If you see a hacker, report him using /areport name - " + ReportsNeeded + " votes = AutoTest!");
             }
         }
 
@@ -374,6 +381,7 @@ namespace AdvancedTester
                         InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
                         F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                         F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
+                        IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                         AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                         DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                         var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
@@ -496,7 +504,6 @@ namespace AdvancedTester
                         p.Inventory.RemoveItem(30);
                         p.Inventory.RemoveItem(31);
                         p.Inventory.AddItemTo("M4", 30);
-                        p.Inventory.AddItemTo("556 Ammo", 31, 100);
                         DataStore.GetInstance().Add("RecoilTest", id, "1");
                         p.Notice("You are being tested for recoil!");
                         p.MessageFrom("RecoilTest", red + "=== Recoil Test ===");
@@ -608,7 +615,7 @@ namespace AdvancedTester
                 {
                     if (args.Length == 0)
                     {
-                        player.MessageFrom("AdvancedTest", red + "Usage: /areport playername - Server will test player after 3 reports");
+                        player.MessageFrom("AdvancedTest", red + "Usage: /areport playername - Server will test player after " + ReportsNeeded + " reports");
                         return;
                     }
                     string s = string.Join(" ", args);
@@ -753,7 +760,6 @@ namespace AdvancedTester
             player.Inventory.RemoveItem(30);
             player.Inventory.RemoveItem(31);
             player.Inventory.AddItemTo("M4", 30);
-            player.Inventory.AddItemTo("556 Ammo", 31, 250);
             player.MessageFrom("AdvancedTest", yellow + "Type /alang to set a different language");
             player.MessageFrom("AdvancedTest", yellow + LanguageDict[TestDataP.LangCode][2]);
             player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
@@ -1037,12 +1043,13 @@ namespace AdvancedTester
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             var loc = player.Location;
             dict["Location"] = loc;
-            if (DropTest)
+            if (DropTest && player.Ping <= IgnoreDropIfPing)
             {
                 player.TeleportTo(loc.x, loc.y + 35f, loc.z);
             }
             else
             {
+                player.MessageFrom("AdvancedTest", yellow + "High Ping or DropTest is Disabled. Ignoring.");
                 UnderTesting[player.UID].FallComplete = true;
             }
             var timedEvent = CreateParallelTimer(3500, dict);
@@ -1086,6 +1093,9 @@ namespace AdvancedTester
             player.FallDamage.ClearInjury();
             player.HumanBodyTakeDmg.SetBleedingLevel(0f);
             player.TeleportTo(pos, false);
+            player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
+            player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
+            player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
 
             var timedEvent = CreateParallelTimer(1500, dict);
             timedEvent.OnFire += Callback3;
@@ -1153,7 +1163,6 @@ namespace AdvancedTester
             {
                 return;
             }
-            count++;
             /*Character c = player.PlayerClient.netUser.playerClient.controllable.character;
             var eyeangles = c.eyesAngles;
             if (angle == eyeangles)
@@ -1190,15 +1199,22 @@ namespace AdvancedTester
                 timedEvent2.Start();
                 return;
             }*/
-
-            player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3] + " ( " + count + "/" + RecoilWait + " )");
-            if (count == RecoilWait)
+            if (RecoilWait != 0)
             {
-                RemoveTest(player);
-                Server.GetServer().BanPlayer(player, "Console", "Recoil Timed out!", null, true);
-                return;
+                count++;
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3] + " ( " + count + "/" + RecoilWait + " )");
+                if (count == RecoilWait)
+                {
+                    RemoveTest(player);
+                    Server.GetServer().BanPlayer(player, "Console", "Recoil Timed out!", null, true);
+                    return;
+                }
+                dict["Count"] = count;
             }
-            dict["Count"] = count;
+            else
+            {
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3]);
+            }
             var timedEvent = CreateParallelTimer(2000, dict);
             timedEvent.OnFire += Callback4;
             timedEvent.Start();
