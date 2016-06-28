@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using Fougerite;
 using Fougerite.Events;
+using RustProto;
 using UnityEngine;
 using Random = System.Random;
 
@@ -46,6 +47,7 @@ namespace AdvancedTester
         public bool GeoIPSupport = false;
         public bool AutoTestOnJoin = false;
         public bool DropTest = true;
+        public bool RemoveSleeperD = false;
         public int IgnoreDropIfPing = 170;
 
         public override string Name
@@ -65,7 +67,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.5.4"); }
+            get { return new Version("1.5.5"); }
         }
 
         public override void Initialize()
@@ -97,6 +99,7 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "DSNames", "HGIG,RandomDSName");
                 Settings.AddSetting("Settings", "AutoTestOnJoin", "False");
                 Settings.AddSetting("Settings", "IgnoreDropIfPing", "170");
+                Settings.AddSetting("Settings", "RemoveSleeperD", "False");
                 Settings.AddSetting("Languages", "1", "English");
                 Settings.AddSetting("Languages", "2", "Hungarian");
                 Settings.AddSetting("Languages", "3", "Russian");
@@ -175,6 +178,7 @@ namespace AdvancedTester
                 IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                 AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                 DropTest = Settings.GetBoolSetting("Settings", "DropTest");
+                RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
                 var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                 foreach (var x in cmds)
                 {
@@ -272,6 +276,10 @@ namespace AdvancedTester
                     {
                         RemoveTest(player);
                         Server.GetServer().BanPlayer(player, "Console", "NoRecoil", null, true);
+                        if (RemoveSleeperD)
+                        {
+                            ExecuteSleeperRemoval(player);
+                        }
                     }
                 }
                 else
@@ -347,6 +355,10 @@ namespace AdvancedTester
             if (!UnderTesting.ContainsKey(player.UID)) { return;}
             Server.GetServer().BanPlayer(player, "Console", "Disconnecting from AdvancedTest", null, true);
             RemoveTest(player, true);
+            if (RemoveSleeperD)
+            {
+                ExecuteSleeperRemoval(player);
+            }
         }
 
         public void OnPlayerHurt(HurtEvent he)
@@ -383,6 +395,7 @@ namespace AdvancedTester
                         F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
                         IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                         AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
+                        RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
                         DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                         var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                         foreach (var x in cmds)
@@ -1013,6 +1026,19 @@ namespace AdvancedTester
             }
         }
 
+        private void ExecuteSleeperRemoval(Fougerite.Player player)
+        {
+            if (RemoveSleeperD)
+            {
+                var dict = new Dictionary<string, object>();
+                dict["Location"] = player.DisconnectLocation;
+                dict["Player"] = player;
+                var timedEvent = CreateParallelTimer(3500, dict);
+                timedEvent.OnFire += RemoveSleeper;
+                timedEvent.Start();
+            }
+        }
+
         public void SpawnDelay(AdvancedTesterTE e)
         {
             e.Kill();
@@ -1033,6 +1059,36 @@ namespace AdvancedTester
             if (!b)
             {
                 e.Kill();
+            }
+        }
+
+        public void RemoveSleeper(AdvancedTesterTE e)
+        {
+            e.Kill();
+            var dict = e.Args;
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            Vector3 location = (Vector3) dict["Location"];
+            var sleepers = UnityEngine.Physics.OverlapSphere(location, 2f);
+            foreach (var sleeper in sleepers)
+            {
+                var name = sleeper.name;
+                if (!name.ToLower().Contains("malesleeper"))
+                {
+                    continue;
+                }
+                RustProto.Avatar playerAvatar = NetUser.LoadAvatar(player.UID);
+                //Check if the player has a SLUMBER away event & a timestamp that's older than the oldest permitted, calculated above
+                if (playerAvatar != null && playerAvatar.HasAwayEvent &&
+                    playerAvatar.AwayEvent.Type == AwayEvent.Types.AwayEventType.SLUMBER &&
+                    playerAvatar.AwayEvent.HasTimestamp)
+                {
+                    SleepingAvatar.TransientData transientData = SleepingAvatar.Close(player.UID);
+                    if (transientData.exists)
+                    {
+                        transientData.AdjustIncomingAvatar(ref playerAvatar);
+                        NetUser.SaveAvatar(player.UID, ref playerAvatar);
+                    }
+                }
             }
         }
 
@@ -1085,6 +1141,10 @@ namespace AdvancedTester
                 }
                 RemoveTest(player);
                 Fougerite.Server.GetServer().BanPlayer(player, "Console", "Auto DropTest Failed! (Ping: " + player.Ping + ")", null, true);
+                if (RemoveSleeperD)
+                {
+                    ExecuteSleeperRemoval(player);
+                }
                 return;
             }
             player.MessageFrom("AdvancedTest", yellow + "Drop Test Complete!");
@@ -1148,6 +1208,10 @@ namespace AdvancedTester
                 }
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "Hack Detected! (Movement)", null, true);
+                if (RemoveSleeperD)
+                {
+                    ExecuteSleeperRemoval(player);
+                }
             }
         }
 
@@ -1207,6 +1271,10 @@ namespace AdvancedTester
                 {
                     RemoveTest(player);
                     Server.GetServer().BanPlayer(player, "Console", "Recoil Timed out!", null, true);
+                    if (RemoveSleeperD)
+                    {
+                        ExecuteSleeperRemoval(player);
+                    }
                     return;
                 }
                 dict["Count"] = count;
@@ -1243,6 +1311,10 @@ namespace AdvancedTester
             {
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "Insert Press Timed Out!", null, true);
+                if (RemoveSleeperD)
+                {
+                    ExecuteSleeperRemoval(player);
+                }
                 return;
             }
             if (dist < 0.10f && dist >= 0.001f)
@@ -1252,6 +1324,10 @@ namespace AdvancedTester
                 {
                     RemoveTest(player);
                     Server.GetServer().BanPlayer(player, "Console", "Detected JACKED Hack.", null, true);
+                    if (RemoveSleeperD)
+                    {
+                        ExecuteSleeperRemoval(player);
+                    }
                     return;
                 }
             }
@@ -1306,6 +1382,10 @@ namespace AdvancedTester
             {
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "F2 Press Timed Out!", null, true);
+                if (RemoveSleeperD)
+                {
+                    ExecuteSleeperRemoval(player);
+                }
                 return;
             }
             var dist = Vector3.Distance(pos, pll);
@@ -1316,6 +1396,10 @@ namespace AdvancedTester
                 {
                     RemoveTest(player);
                     Server.GetServer().BanPlayer(player, "Console", "Detected Dizzy Hack.", null, true);
+                    if (RemoveSleeperD)
+                    {
+                        ExecuteSleeperRemoval(player);
+                    }
                     return;
                 }
             }
@@ -1370,6 +1454,10 @@ namespace AdvancedTester
             {
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "F5 Press Timed Out!", null, true);
+                if (RemoveSleeperD)
+                {
+                    ExecuteSleeperRemoval(player);
+                }
                 return;
             }
             var dist = Vector3.Distance(pos, pll);
@@ -1380,6 +1468,10 @@ namespace AdvancedTester
                 {
                     RemoveTest(player);
                     Server.GetServer().BanPlayer(player, "Console", "Detected A3MON Hack.", null, true);
+                    if (RemoveSleeperD)
+                    {
+                        ExecuteSleeperRemoval(player);
+                    }
                     return;
                 }
             }
