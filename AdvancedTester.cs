@@ -48,6 +48,7 @@ namespace AdvancedTester
         public bool AutoTestOnJoin = false;
         public bool DropTest = true;
         public bool RemoveSleeperD = false;
+        public bool EnableButtonWarnMessage = false;
         public int IgnoreDropIfPing = 170;
 
         public override string Name
@@ -67,7 +68,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.5.5"); }
+            get { return new Version("1.5.6"); }
         }
 
         public override void Initialize()
@@ -100,6 +101,7 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "AutoTestOnJoin", "False");
                 Settings.AddSetting("Settings", "IgnoreDropIfPing", "170");
                 Settings.AddSetting("Settings", "RemoveSleeperD", "False");
+                Settings.AddSetting("Settings", "EnableButtonWarnMessage", "False");
                 Settings.AddSetting("Languages", "1", "English");
                 Settings.AddSetting("Languages", "2", "Hungarian");
                 Settings.AddSetting("Languages", "3", "Russian");
@@ -179,6 +181,7 @@ namespace AdvancedTester
                 AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                 DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                 RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
+                EnableButtonWarnMessage = Settings.GetBoolSetting("Settings", "EnableButtonWarnMessage");
                 var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                 foreach (var x in cmds)
                 {
@@ -222,17 +225,19 @@ namespace AdvancedTester
             Angles = new Dictionary<ulong, Angle2>();
             TData = new Dictionary<ulong, Dictionary<string, object>>();
             AnglesC = new Dictionary<ulong, int>();
-            TestPlaces = new List<Vector3>();
-            TestPlaces.Add(new Vector3(-5599, 403, -2989));
-            TestPlaces.Add(new Vector3(-5594, 403, -2985));
-            TestPlaces.Add(new Vector3(-5589, 403, -2981));
-            TestPlaces.Add(new Vector3(-5585, 402, -2978));
-            TestPlaces.Add(new Vector3(-5579, 401, -2973));
-            TestPlaces.Add(new Vector3(-5570, 398, -2966));
-            TestPlaces.Add(new Vector3(-5562, 396, -2960));
-            TestPlaces.Add(new Vector3(-5555, 394, -2954));
-            TestPlaces.Add(new Vector3(-5546, 393, -2947));
-            TestPlaces.Add(new Vector3(-5520, 388, -2943));
+            TestPlaces = new List<Vector3>
+            {
+                new Vector3(-5599, 403, -2989),
+                new Vector3(-5594, 403, -2985),
+                new Vector3(-5589, 403, -2981),
+                new Vector3(-5585, 402, -2978),
+                new Vector3(-5579, 401, -2973),
+                new Vector3(-5570, 398, -2966),
+                new Vector3(-5562, 396, -2960),
+                new Vector3(-5555, 394, -2954),
+                new Vector3(-5546, 393, -2947),
+                new Vector3(-5520, 388, -2943)
+            };
             DataStore.GetInstance().Flush("RecoilTest");
             DataStore.GetInstance().Flush("JumpTest");
             DataStore.GetInstance().Flush("ADVTESTAUTO");
@@ -397,6 +402,7 @@ namespace AdvancedTester
                         AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                         RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
                         DropTest = Settings.GetBoolSetting("Settings", "DropTest");
+                        EnableButtonWarnMessage = Settings.GetBoolSetting("Settings", "EnableButtonWarnMessage");
                         var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                         foreach (var x in cmds)
                         {
@@ -479,17 +485,34 @@ namespace AdvancedTester
                     ulong id = p.UID;
                     if (DataStore.GetInstance().ContainsKey("RecoilTest", id))
                     {
-                        Send(p, false);
-                        if (storage.ContainsKey(player.UID))
+                        if (!UnderTesting.ContainsKey(p.UID))
                         {
-                            var n = storage[player.UID];
-                            player.Inventory.RemoveItem(30);
-                            player.Inventory.RemoveItem(31);
+                            player.MessageFrom("AdvancedTest", "Player is not being tested!");
+                            return;
+                        }
+                        Send(p, false);
+                        if (storage.ContainsKey(p.UID))
+                        {
+                            var n = storage[p.UID];
+                            p.Inventory.RemoveItem(30);
+                            p.Inventory.RemoveItem(31);
                             foreach (var x in n.Keys)
                             {
-                                player.Inventory.AddItem(x, n[x]);
+                                p.Inventory.AddItem(x, n[x]);
                             }
-                            storage.Remove(player.UID);
+                            storage.Remove(p.UID);
+                        }
+                        if (UnderTesting.ContainsKey(p.UID))
+                        {
+                            UnderTesting.Remove(p.UID);
+                        }
+                        if (Angles.ContainsKey(p.UID))
+                        {
+                            Angles.Remove(p.UID);
+                        }
+                        if (AnglesC.ContainsKey(p.UID))
+                        {
+                            AnglesC.Remove(p.UID);
                         }
                         DataStore.GetInstance().Remove("RecoilTest", id);
                         player.MessageFrom("RecoilTest", red + "Testing ended for " + p.Name);
@@ -497,6 +520,11 @@ namespace AdvancedTester
                     }
                     else
                     {
+                        if (UnderTesting.ContainsKey(p.UID))
+                        {
+                            player.MessageFrom("AdvancedTest", "Player is currently being tested!");
+                            return;
+                        }
                         player.MessageFrom("RecoilTest", red + "Testing started for " + p.Name);
                         player.MessageFrom("RecoilTest", red + "/recoiltest name - to finish");
                         Send(p);
@@ -517,6 +545,22 @@ namespace AdvancedTester
                         p.Inventory.RemoveItem(30);
                         p.Inventory.RemoveItem(31);
                         p.Inventory.AddItemTo("M4", 30);
+                        int lang = 1;
+                        if (DataStore.GetInstance().Get("ADVTEST", p.UID) != null)
+                        {
+                            lang = (int)DataStore.GetInstance().Get("ADVTEST", p.UID);
+                        }
+                        UnderTesting[p.UID] = new TestData(p, lang);
+                        Dictionary<string, object> dict = new Dictionary<string, object>();
+                        dict["Location"] = p.Location;
+                        dict["Player"] = p;
+                        Angle2 ca = p.PlayerClient.netUser.playerClient.controllable.character.eyesAngles;
+                        var timedEvent = CreateParallelTimer(2000, dict);
+                        timedEvent.OnFire += Callback3;
+                        timedEvent.Start();
+
+                        Angles[p.UID] = ca;
+                        AnglesC[p.UID] = 0;
                         DataStore.GetInstance().Add("RecoilTest", id, "1");
                         p.Notice("You are being tested for recoil!");
                         p.MessageFrom("RecoilTest", red + "=== Recoil Test ===");
@@ -775,9 +819,12 @@ namespace AdvancedTester
             player.Inventory.AddItemTo("M4", 30);
             player.MessageFrom("AdvancedTest", yellow + "Type /alang to set a different language");
             player.MessageFrom("AdvancedTest", yellow + LanguageDict[TestDataP.LangCode][2]);
-            player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
-            player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
-            player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
+            if (EnableButtonWarnMessage)
+            {
+                player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
+                player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
+                player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
+            }
             var dict = new  Dictionary<string, object>();
             dict["Player"] = player;
             var timedEvent = CreateParallelTimer(2500, dict);
@@ -1153,15 +1200,17 @@ namespace AdvancedTester
             player.FallDamage.ClearInjury();
             player.HumanBodyTakeDmg.SetBleedingLevel(0f);
             player.TeleportTo(pos, false);
-            player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
-            player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
-            player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
+            if (EnableButtonWarnMessage)
+            {
+                player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
+                player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
+                player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
+            }
 
             var timedEvent = CreateParallelTimer(1500, dict);
             timedEvent.OnFire += Callback3;
             timedEvent.Start();
 
-            //dict["Angle"] = eyeangles;
             Angles[player.UID] = eyeangles;
             AnglesC[player.UID] = 0;
             dict["Count"] = 0;
@@ -1217,52 +1266,14 @@ namespace AdvancedTester
 
         public void Callback4(AdvancedTesterTE e)
         {
-            //Todo: Add on shooting event to Fougerite and fuck up everyone
             e.Kill();
             var dict = e.Args;
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
             int count = (int)dict["Count"];
-            //Angle2 angle = (Angle2) dict["Angle"];
             if (UnderTesting[player.UID].RecoilComplete)
             {
                 return;
             }
-            /*Character c = player.PlayerClient.netUser.playerClient.controllable.character;
-            var eyeangles = c.eyesAngles;
-            if (angle == eyeangles)
-            {
-                count++;
-            }
-            else
-            {
-                player.SendCommand("input.bind Up F4 None");
-                player.SendCommand("input.bind Down F4 None");
-                player.SendCommand("input.bind Left F4 None");
-                player.SendCommand("input.bind Right INSERT None");
-                UnderTesting[player.UID].RecoilComplete = true;
-                if (storage.ContainsKey(player.UID))
-                {
-                    var n = storage[player.UID];
-                    player.Inventory.RemoveItem(30);
-                    player.Inventory.RemoveItem(31);
-                    foreach (var x in n.Keys)
-                    {
-                        player.Inventory.AddItem(x, n[x]);
-                    }
-                    storage.Remove(player.UID);
-                }
-                Vector3 pos = (Vector3)dict["Location"];
-                dict["ButtonPos"] = pos;
-                dict["SCount"] = 0;
-                dict["SCount2"] = 0;
-                dict["INSERT"] = 0;
-                dict["F2"] = 0;
-                dict["F5"] = 0;
-                var timedEvent2 = CreateParallelTimer(1000, dict);
-                timedEvent2.OnFire += Callback5;
-                timedEvent2.Start();
-                return;
-            }*/
             if (RecoilWait != 0)
             {
                 count++;
