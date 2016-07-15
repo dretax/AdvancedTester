@@ -36,7 +36,7 @@ namespace AdvancedTester
         public Dictionary<ulong, int> AnglesC;
         public Dictionary<ulong, Dictionary<string, object>> TData; 
         public List<string> DSNames; 
-        public List<string> RestrictedCommands; 
+        public List<string> RestrictedCommands;
         public int ReportsNeeded = 3;
         public int TestAllowedEvery = 15;
         public int RecoilWait = 15;
@@ -68,7 +68,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.5.6"); }
+            get { return new Version("1.5.7"); }
         }
 
         public override void Initialize()
@@ -259,6 +259,11 @@ namespace AdvancedTester
         {
             if (shootevent.Player != null)
             {
+                if (DataStore.GetInstance().ContainsKey("RecoilTest", shootevent.Player.UID))
+                {
+                    shootevent.IBulletWeaponItem.clipAmmo = 24;
+                    return;
+                }
                 if (!Angles.ContainsKey(shootevent.Player.UID) || !UnderTesting.ContainsKey(shootevent.Player.UID))
                 {
                     return;
@@ -266,6 +271,10 @@ namespace AdvancedTester
                 if (!shootevent.BulletWeaponDataBlock.name.ToLower().Contains("m4"))
                 {
                     return;
+                }
+                if (AnglesC.ContainsKey(shootevent.Player.UID))
+                {
+                    AnglesC[shootevent.Player.UID] = 0;
                 }
                 shootevent.IBulletWeaponItem.clipAmmo = 24;
                 var player = shootevent.Player;
@@ -554,13 +563,10 @@ namespace AdvancedTester
                         Dictionary<string, object> dict = new Dictionary<string, object>();
                         dict["Location"] = p.Location;
                         dict["Player"] = p;
-                        Angle2 ca = p.PlayerClient.netUser.playerClient.controllable.character.eyesAngles;
                         var timedEvent = CreateParallelTimer(2000, dict);
                         timedEvent.OnFire += Callback3;
                         timedEvent.Start();
 
-                        Angles[p.UID] = ca;
-                        AnglesC[p.UID] = 0;
                         DataStore.GetInstance().Add("RecoilTest", id, "1");
                         p.Notice("You are being tested for recoil!");
                         p.MessageFrom("RecoilTest", red + "=== Recoil Test ===");
@@ -700,15 +706,17 @@ namespace AdvancedTester
                         if (calc > 0 || !double.IsNaN(calc) || !double.IsNaN(ticks))
                         {
                             var done = Math.Round((float) ((calc/1000)/60));
+                            var done2 = Math.Round((float) ((ticks / 1000)/60));
                             player.MessageFrom("AdvancedTest",
-                                "Player has report cooldown for: " + (ticks - done) + " minutes!");
+                                "Player has report cooldown for: " + (done2 - done) + " minutes!");
                             return;
                         }
                         if (calc < TestAllowedEvery * 60000)
                         {
                             var done = Math.Round((float) ((calc/1000)/60));
+                            var done2 = Math.Round((float) ((ticks / 1000)/60));
                             player.MessageFrom("AdvancedTest",
-                                "Player has report cooldown for: " + (ticks - done) + " minutes!");
+                                "Player has report cooldown for: " + (done2 - done) + " minutes!");
                             return;
                         }
                     }
@@ -738,10 +746,13 @@ namespace AdvancedTester
                     {
                         Reports[p.UID] = 1;
                         player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( 1/" + ReportsNeeded + " )");
-                        return;
                     }
-                    Reports[p.UID] = Reports[p.UID] + 1;
-                    if (Reports[p.UID] == 3)
+                    else
+                    {
+                        Reports[p.UID] = Reports[p.UID] + 1;
+                        player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( " + Reports[p.UID] + "/" + ReportsNeeded + " )");
+                    }
+                    if (Reports[p.UID] == ReportsNeeded)
                     {
                         Server.GetServer().BroadcastFrom("AdvancedTest", red + p.Name + " received enough reports. Auto test is starting.");
                         StartTest(p);
@@ -922,58 +933,58 @@ namespace AdvancedTester
             if (!data.RecoilComplete)
             {
                 player.SendCommand("input.mousespeed 0");
-                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Up None None");
                 player.SendCommand("input.bind Down F5 None");
                 player.SendCommand("input.bind Left F2 None");
                 player.SendCommand("input.bind Right INSERT None");
                 player.SendCommand("input.bind Fire Mouse0 W");
-                player.SendCommand("input.bind Jump F4 None");
-                player.SendCommand("input.bind Duck F4 None");
-                player.SendCommand("input.bind AltFire F4 None");
-                player.SendCommand("input.bind Sprint F4 None");
-                player.SendCommand("input.bind Inventory 7 None");
+                player.SendCommand("input.bind Jump None None");
+                player.SendCommand("input.bind Duck None None");
+                player.SendCommand("input.bind AltFire None None");
+                player.SendCommand("input.bind Sprint None None");
+                player.SendCommand("input.bind Inventory None None");
             }
             else if (!data.ButtonComplete)
             {
-                player.SendCommand("input.bind Up F4 None");
-                player.SendCommand("input.bind Down F4 None");
-                player.SendCommand("input.bind Left F4 None");
+                player.SendCommand("input.bind Up None None");
+                player.SendCommand("input.bind Down None None");
+                player.SendCommand("input.bind Left None None");
                 player.SendCommand("input.bind Right INSERT None");
                 player.SendCommand("input.mousespeed 0");
                 player.SendCommand("input.bind Fire Mouse0 W");
-                player.SendCommand("input.bind Jump F4 None");
-                player.SendCommand("input.bind Duck F4 None");
-                player.SendCommand("input.bind AltFire F4 None");
-                player.SendCommand("input.bind Sprint F4 None");
-                player.SendCommand("input.bind Inventory 7 None");
+                player.SendCommand("input.bind Jump None None");
+                player.SendCommand("input.bind Duck None None");
+                player.SendCommand("input.bind AltFire None None");
+                player.SendCommand("input.bind Sprint None None");
+                player.SendCommand("input.bind Inventory None None");
             }
             else if (!data.ButtonComplete2)
             {
-                player.SendCommand("input.bind Up F4 None");
-                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Up None None");
+                player.SendCommand("input.bind Down None None");
                 player.SendCommand("input.bind Left F2 None");
-                player.SendCommand("input.bind Right F4 None");
+                player.SendCommand("input.bind Right None None");
                 player.SendCommand("input.mousespeed 0");
                 player.SendCommand("input.bind Fire Mouse0 W");
-                player.SendCommand("input.bind Jump F4 None");
-                player.SendCommand("input.bind Duck F4 None");
-                player.SendCommand("input.bind AltFire F4 None");
-                player.SendCommand("input.bind Sprint F4 None");
-                player.SendCommand("input.bind Inventory 7 None");
+                player.SendCommand("input.bind Jump None None");
+                player.SendCommand("input.bind Duck None None");
+                player.SendCommand("input.bind AltFire None None");
+                player.SendCommand("input.bind Sprint None None");
+                player.SendCommand("input.bind Inventory None None");
             }
             else if (!data.ButtonComplete3)
             {
-                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Up None None");
                 player.SendCommand("input.bind Down F5 None");
-                player.SendCommand("input.bind Left F4 None");
-                player.SendCommand("input.bind Right F4 None");
+                player.SendCommand("input.bind Left None None");
+                player.SendCommand("input.bind Right None None");
                 player.SendCommand("input.mousespeed 0");
                 player.SendCommand("input.bind Fire Mouse0 W");
-                player.SendCommand("input.bind Jump F4 None");
-                player.SendCommand("input.bind Duck F4 None");
-                player.SendCommand("input.bind AltFire F4 None");
-                player.SendCommand("input.bind Sprint F4 None");
-                player.SendCommand("input.bind Inventory 7 None");
+                player.SendCommand("input.bind Jump None None");
+                player.SendCommand("input.bind Duck None None");
+                player.SendCommand("input.bind AltFire None None");
+                player.SendCommand("input.bind Sprint None None");
+                player.SendCommand("input.bind Inventory None None");
             }
             return true;
         }
@@ -983,16 +994,16 @@ namespace AdvancedTester
             if (on)
             {
                 player.SendCommand("input.mousespeed 0");
-                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Up None None");
                 player.SendCommand("input.bind Down F5 None");
                 player.SendCommand("input.bind Left F2 None");
                 player.SendCommand("input.bind Right INSERT None");
                 player.SendCommand("input.bind Fire Mouse0 W");
-                player.SendCommand("input.bind Jump F4 None");
-                player.SendCommand("input.bind Duck F4 None");
-                player.SendCommand("input.bind AltFire F4 None");
-                player.SendCommand("input.bind Sprint F4 None");
-                player.SendCommand("input.bind Inventory 7 None");
+                player.SendCommand("input.bind Jump None None");
+                player.SendCommand("input.bind Duck None None");
+                player.SendCommand("input.bind AltFire None None");
+                player.SendCommand("input.bind Sprint None None");
+                player.SendCommand("input.bind Inventory None None");
             }
             else
             {
@@ -1015,16 +1026,16 @@ namespace AdvancedTester
             if (on)
             {
                 player.SendCommand("input.mousespeed 0");
-                player.SendCommand("input.bind Up F4 None");
-                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Up None None");
+                player.SendCommand("input.bind Down None None");
                 player.SendCommand("input.bind Left F2 None");
                 player.SendCommand("input.bind Right INSERT None");
                 player.SendCommand("input.bind Fire Mouse0 W");
                 player.SendCommand("input.bind Jump F5 None");
-                player.SendCommand("input.bind Duck F4 None");
-                player.SendCommand("input.bind AltFire F4 None");
-                player.SendCommand("input.bind Sprint F4 None");
-                player.SendCommand("input.bind Inventory 7 None");
+                player.SendCommand("input.bind Duck None None");
+                player.SendCommand("input.bind AltFire None None");
+                player.SendCommand("input.bind Sprint None None");
+                player.SendCommand("input.bind Inventory None None");
             }
             else
             {
@@ -1048,14 +1059,14 @@ namespace AdvancedTester
             {
                 player.SendCommand("input.mousespeed 0");
                 player.SendCommand("input.bind Up F2 None");
-                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Down None None");
                 player.SendCommand("input.bind Left F5 None");
                 player.SendCommand("input.bind Right INSERT None");
                 player.SendCommand("input.bind Fire Mouse0 W");
-                player.SendCommand("input.bind AltFire F4 None");
-                player.SendCommand("input.bind Sprint F4 None");
-                player.SendCommand("input.bind Duck F4 None");
-                player.SendCommand("input.bind Inventory 7 None");
+                player.SendCommand("input.bind AltFire None None");
+                player.SendCommand("input.bind Sprint None None");
+                player.SendCommand("input.bind Duck None None");
+                player.SendCommand("input.bind Inventory None None");
             }
             else
             {
