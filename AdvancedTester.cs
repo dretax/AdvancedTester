@@ -68,7 +68,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.5.7"); }
+            get { return new Version("1.5.8"); }
         }
 
         public override void Initialize()
@@ -110,6 +110,8 @@ namespace AdvancedTester
                 Settings.AddSetting("Languages", "6", "Spanish");
                 Settings.AddSetting("Languages", "7", "Arabic");
                 Settings.AddSetting("Languages", "8", "Italian");
+                Settings.AddSetting("Languages", "9", "Dutch");
+                Settings.AddSetting("Languages", "10", "German");
                 Settings.AddSetting("LanguageData", "Spain", "6");
                 Settings.AddSetting("LanguageData", "Hungary", "2");
                 Settings.AddSetting("LanguageData", "Russia", "3");
@@ -118,6 +120,10 @@ namespace AdvancedTester
                 Settings.AddSetting("LanguageData", "Saudi Arabia", "7");
                 Settings.AddSetting("LanguageData", "United Arab Emirates", "7");
                 Settings.AddSetting("LanguageData", "Italy", "8");
+                Settings.AddSetting("LanguageData", "Dutch", "9");
+                Settings.AddSetting("LanguageData", "Germany", "10");
+                Settings.AddSetting("LanguageData", "Austria", "10");
+                Settings.AddSetting("LanguageData", "Switzerland", "10");
                 Settings.AddSetting("English", "1", "Do not press F2/ F5 / Insert until the plugin says otherwise!");
                 Settings.AddSetting("English", "2", "Disconnecting from the test will cause auto ban!");
                 Settings.AddSetting("English", "3", "Take your M4 out, reload It, and shoot It!");
@@ -163,9 +169,21 @@ namespace AdvancedTester
                 Settings.AddSetting("Italian", "1", "Non premere F2 / F5 / Insert sino a quando non te lo chiede il plugin!");
                 Settings.AddSetting("Italian", "2", "Se ti disconnetti dal test verrai autobannato!");
                 Settings.AddSetting("Italian", "3", "Prendi il tuo M4, ricaricalo e spara!");
-                Settings.AddSetting("Italian", "4", "Tieni premuto Insert");
+                Settings.AddSetting("Italian", "4", "Tieni premuto Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("Italian", "5", "Tieni premuto F2");
                 Settings.AddSetting("Italian", "6", "Tieni premuto F5");
+                Settings.AddSetting("Dutch", "1", "Druk niet op F2 / F5/ Insert totdat de plugin zegt dat dat moet!");
+                Settings.AddSetting("Dutch", "2", "Als je disconnect in de test, wordt je gebanned / verbannen!");
+                Settings.AddSetting("Dutch", "3", "Pak de M4, reload / herlaad het, en schiet!");
+                Settings.AddSetting("Dutch", "4", "Blijf Insert/Ins/NUMPAD 0 ingedrukt houden");
+                Settings.AddSetting("Dutch", "5", "Blijf F4 ingedrukt houden");
+                Settings.AddSetting("Dutch", "6", "Blijf F5 ingedrukt houden");
+                Settings.AddSetting("German", "1", "Drücke nicht F2 / F5 / Insert bis das Plugin es sagt.");
+                Settings.AddSetting("German", "2", "Wann du disconnectst weil in ein Test, wirst du gebannt.");
+                Settings.AddSetting("German", "3", "Nehme die M4, reload es, und schiesse.");
+                Settings.AddSetting("German", "4", "Bleib Insert / Ins / NUMPAD 0 indrucken.");
+                Settings.AddSetting("German", "5", "Bleib F4 indrucken.");
+                Settings.AddSetting("German", "6", "Bleib F5 indrucken.");
                 Settings.Save();
             }
             try
@@ -854,6 +872,12 @@ namespace AdvancedTester
                 if (LastPos.ContainsKey(player.UID))
                 {
                     player.TeleportTo(LastPos[player.UID], false);
+                    var dict = new Dictionary<string, object>();
+                    dict["Location"] = LastPos[player.UID];
+                    dict["Player"] = player;
+                    var timedEvent = CreateParallelTimer(2000, dict);
+                    timedEvent.OnFire += ReTeleport;
+                    timedEvent.Start();
                     LastPos.Remove(player.UID);
                 }
             }
@@ -1095,6 +1119,19 @@ namespace AdvancedTester
                 timedEvent.OnFire += RemoveSleeper;
                 timedEvent.Start();
             }
+        }
+
+        public void ReTeleport(AdvancedTesterTE e)
+        {
+            e.Kill();
+            var dict = e.Args;
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            if (!player.IsOnline)
+            {
+                return;
+            }
+            Vector3 location = (Vector3)dict["Location"];
+            player.TeleportTo(location, false);
         }
 
         public void SpawnDelay(AdvancedTesterTE e)
