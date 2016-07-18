@@ -43,6 +43,7 @@ namespace AdvancedTester
         public int InsertWait = 0;
         public int F2Wait = 0;
         public int F5Wait = 0;
+        public int F3Wait = 0;
         public IniParser Settings;
         public bool GeoIPSupport = false;
         public bool AutoTestOnJoin = false;
@@ -68,7 +69,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.5.8"); }
+            get { return new Version("1.6.0"); }
         }
 
         public override void Initialize()
@@ -81,6 +82,7 @@ namespace AdvancedTester
             Fougerite.Hooks.OnChat += OnChat;
             Fougerite.Hooks.OnModulesLoaded += OnModulesLoaded;
             Fougerite.Hooks.OnShoot += OnShoot;
+            Fougerite.Hooks.OnPlayerMove += OnPlayerMove;
             RestrictedCommands = new List<string>();
             DSNames = new List<string>();
             LanguageDict = new Dictionary<int, Dictionary<int, string>>();
@@ -94,6 +96,7 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "InsertWait", "0");
                 Settings.AddSetting("Settings", "F2Wait", "0");
                 Settings.AddSetting("Settings", "F5Wait", "0");
+                Settings.AddSetting("Settings", "F3Wait", "0");
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
                 Settings.AddSetting("Settings", "DropTest", "True");
                 Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
@@ -124,66 +127,96 @@ namespace AdvancedTester
                 Settings.AddSetting("LanguageData", "Germany", "10");
                 Settings.AddSetting("LanguageData", "Austria", "10");
                 Settings.AddSetting("LanguageData", "Switzerland", "10");
+                Settings.AddSetting("LanguageData", "Venezuela", "6");
+                Settings.AddSetting("LanguageData", "Uruguay", "6");
+                Settings.AddSetting("LanguageData", "Puerto Rico", "6");
+                Settings.AddSetting("LanguageData", "Peru", "6");
+                Settings.AddSetting("LanguageData", "Paraguay", "6");
+                Settings.AddSetting("LanguageData", "Panama", "6");
+                Settings.AddSetting("LanguageData", "Nicaragua", "6");
+                Settings.AddSetting("LanguageData", "Mexico", "6");
+                Settings.AddSetting("LanguageData", "Honduras", "6");
+                Settings.AddSetting("LanguageData", "Guatemala", "6");
+                Settings.AddSetting("LanguageData", "Equatorial Guinea", "6");
+                Settings.AddSetting("LanguageData", "El Salvador", "6");
+                Settings.AddSetting("LanguageData", "Ecuador", "6");
+                Settings.AddSetting("LanguageData", "Dominican Republic", "6");
+                Settings.AddSetting("LanguageData", "Cuba", "6");
+                Settings.AddSetting("LanguageData", "Costa Rica", "6");
+                Settings.AddSetting("LanguageData", "Colombia", "6");
+                Settings.AddSetting("LanguageData", "Chile", "6");
+                Settings.AddSetting("LanguageData", "Bolivia", "6");
+                Settings.AddSetting("LanguageData", "Argentina", "6");
                 Settings.AddSetting("English", "1", "Do not press F2/ F5 / Insert until the plugin says otherwise!");
                 Settings.AddSetting("English", "2", "Disconnecting from the test will cause auto ban!");
                 Settings.AddSetting("English", "3", "Take your M4 out, reload It, and shoot It!");
                 Settings.AddSetting("English", "4", "Keep Pressing Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("English", "5", "Keep Pressing F2");
                 Settings.AddSetting("English", "6", "Keep Pressing F5");
+                Settings.AddSetting("English", "7", "Keep Pressing F3");
                 Settings.AddSetting("Hungarian", "1", "Ne nyomj F2 / F5 / Insert gombokat, amíg a plugin nem kéri!");
                 Settings.AddSetting("Hungarian", "2", "A lecsatlakozás autómatikus bant okoz!");
                 Settings.AddSetting("Hungarian", "3", "Vedd elő az M4-et, töltsd újra, és tüzelj párszor!");
                 Settings.AddSetting("Hungarian", "4", "Nyomd folyamatosan az INSERT/Ins/NUMPAD 0 gombot");
                 Settings.AddSetting("Hungarian", "5", "Nyomd folyamatosan az F2 gombot");
                 Settings.AddSetting("Hungarian", "6", "Nyomd folyamatosan az F5 gombot");
+                Settings.AddSetting("Hungarian", "7", "Nyomd folyamatosan az F3 gombot");
                 Settings.AddSetting("Russian", "1", "Не нажимайте F2 / F5 / Insert, пока плагин не говорит иначе!");
                 Settings.AddSetting("Russian", "2", "Разъединители причины запрета!");
                 Settings.AddSetting("Russian", "3", "Возьмите M4 из, перезагрузить его, и стрелять из него!");
                 Settings.AddSetting("Russian", "4", "Продолжайте нажимать Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("Russian", "5", "Продолжайте нажимать F2");
                 Settings.AddSetting("Russian", "6", "Продолжайте нажимать F5");
+                Settings.AddSetting("Russian", "7", "Продолжайте нажимать F3");
                 Settings.AddSetting("Portuguese", "1", "Não carregues no F2 / F5 / Insert sem te pedirem para o fazer!");
                 Settings.AddSetting("Portuguese", "2", "Sair do teste vai resultar em autoban!");
                 Settings.AddSetting("Portuguese", "3", "Pega na M4, recarrega-a e dispara-a sem parar!");
                 Settings.AddSetting("Portuguese", "4", "Carrega no Insert/Ins/NUMPAD 0 continuamente.");
                 Settings.AddSetting("Portuguese", "5", "Carrega no F2 continuamente.");
                 Settings.AddSetting("Portuguese", "6", "Carrega no F5 continuamente.");
+                Settings.AddSetting("Portuguese", "7", "Carrega no F3 continuamente.");
                 Settings.AddSetting("Romanian", "1", "Nu apasa tastele F2 / F5 / Insert pana nu iti spune plug - inul sa o faci");
                 Settings.AddSetting("Romanian", "2", "Daca te deconectezi in timp ce esti testat vei lua ban automat");
                 Settings.AddSetting("Romanian", "3", "Echipeaza M4 - ul, incarca - l si trage!");
                 Settings.AddSetting("Romanian", "4", "Apasa tasta Insert/Ins/NUMPAD 0 incontinuu");
                 Settings.AddSetting("Romanian", "5", "Apasa tasta F2 incontinuu");
                 Settings.AddSetting("Romanian", "6", "Apasa tasta F5 incontinuu");
+                Settings.AddSetting("Romanian", "7", "Apasa tasta F3 incontinuu");
                 Settings.AddSetting("Spanish", "1", "No pulses F2/ F5 / Insert hasta que el plugin lo diga");
                 Settings.AddSetting("Spanish", "2", "Desconectarse del servidor durante el test causará un baneo automático");
                 Settings.AddSetting("Spanish", "3", "Equipa tu M4, recarga y dispara");
                 Settings.AddSetting("Spanish", "4", "Sigue pulsando Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("Spanish", "5", "Sigue pulsando F2");
                 Settings.AddSetting("Spanish", "6", "Sigue pulsando F5");
+                Settings.AddSetting("Spanish", "7", "Sigue pulsando F3");
                 Settings.AddSetting("Arabic", "1", " تدغط علي F2 / F5 / Insert حتي يقول لكا الخادم.");
                 Settings.AddSetting("Arabic", "2", "فصل الاتصال اثنا الاختبار سايسبب من الخادم بمنعك من الاتصال مجددآ");
                 Settings.AddSetting("Arabic", "3", "اخرج ال M4 ، قم بسحبه، ثم قم باطلاق النار");
                 Settings.AddSetting("Arabic", "4", "ادغط Insert/Ins/NUMPAD 0 باستمرار");
                 Settings.AddSetting("Arabic", "5", "ادغط F2 باستمرار");
                 Settings.AddSetting("Arabic", "6", "ادغط F5 باستمرار");
+                Settings.AddSetting("Arabic", "7", "ادغط F3 باستمرار");
                 Settings.AddSetting("Italian", "1", "Non premere F2 / F5 / Insert sino a quando non te lo chiede il plugin!");
                 Settings.AddSetting("Italian", "2", "Se ti disconnetti dal test verrai autobannato!");
                 Settings.AddSetting("Italian", "3", "Prendi il tuo M4, ricaricalo e spara!");
                 Settings.AddSetting("Italian", "4", "Tieni premuto Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("Italian", "5", "Tieni premuto F2");
                 Settings.AddSetting("Italian", "6", "Tieni premuto F5");
+                Settings.AddSetting("Italian", "7", "Tieni premuto F3");
                 Settings.AddSetting("Dutch", "1", "Druk niet op F2 / F5/ Insert totdat de plugin zegt dat dat moet!");
                 Settings.AddSetting("Dutch", "2", "Als je disconnect in de test, wordt je gebanned / verbannen!");
                 Settings.AddSetting("Dutch", "3", "Pak de M4, reload / herlaad het, en schiet!");
                 Settings.AddSetting("Dutch", "4", "Blijf Insert/Ins/NUMPAD 0 ingedrukt houden");
-                Settings.AddSetting("Dutch", "5", "Blijf F4 ingedrukt houden");
+                Settings.AddSetting("Dutch", "5", "Blijf F2 ingedrukt houden");
                 Settings.AddSetting("Dutch", "6", "Blijf F5 ingedrukt houden");
-                Settings.AddSetting("German", "1", "Drücke nicht F2 / F5 / Insert bis das Plugin es sagt.");
-                Settings.AddSetting("German", "2", "Wann du disconnectst weil in ein Test, wirst du gebannt.");
-                Settings.AddSetting("German", "3", "Nehme die M4, reload es, und schiesse.");
-                Settings.AddSetting("German", "4", "Bleib Insert / Ins / NUMPAD 0 indrucken.");
-                Settings.AddSetting("German", "5", "Bleib F4 indrucken.");
-                Settings.AddSetting("German", "6", "Bleib F5 indrucken.");
+                Settings.AddSetting("Dutch", "7", "Blijf F3 ingedrukt houden");
+                Settings.AddSetting("German", "1", "Drücke nicht F2 / F5 / Einfg, bevor du dazu aufgefordert wirst");
+                Settings.AddSetting("German", "2", "Wenn du während dem Test die Verbindung trennst oder Rust schließt, wirst du gebannt");
+                Settings.AddSetting("German", "3", "Nehme die M4 und schieße!");
+                Settings.AddSetting("German", "4", "Halte die Taste Einfügen / Einfg / Ziffernblock Taste 0 gedrückt");
+                Settings.AddSetting("German", "5", "Halte die Taste F2 gedrückt");
+                Settings.AddSetting("German", "6", "Halte die Taste F5 gedrückt");
+                Settings.AddSetting("German", "7", "Halte die Taste F3 gedrückt");
                 Settings.Save();
             }
             try
@@ -195,6 +228,7 @@ namespace AdvancedTester
                 InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
                 F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                 F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
+                F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
                 IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                 AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                 DropTest = Settings.GetBoolSetting("Settings", "DropTest");
@@ -271,6 +305,35 @@ namespace AdvancedTester
             Fougerite.Hooks.OnChat -= OnChat;
             Fougerite.Hooks.OnModulesLoaded -= OnModulesLoaded;
             Fougerite.Hooks.OnShoot -= OnShoot;
+            Fougerite.Hooks.OnPlayerMove -= OnPlayerMove;
+        }
+
+        public void OnPlayerMove(HumanController hc, Vector3 origin, int encoded, ushort stateflags, uLink.NetworkMessageInfo info, Util.PlayerActions action)
+        {
+            if (!UnderTesting.ContainsKey(hc.netUser.userID))
+            {
+                return;
+            }
+            Fougerite.Player player = Fougerite.Server.Cache.ContainsKey(hc.netUser.userID) ? Fougerite.Server.Cache[hc.netUser.userID]
+                    : Fougerite.Server.GetServer().FindPlayer(hc.netUser.userID.ToString());
+            if (player == null)
+            {
+                if (hc.netUser == null) return;
+                if (hc.netUser.connected)
+                {
+                    hc.netUser.Kick(NetError.NoError, true);
+                }
+                return;
+            }
+            if (action == Util.PlayerActions.TAB)
+            {
+                RemoveTest(player);
+                Server.GetServer().BanPlayer(player, "Console", "Menu hack Detected!", null, true);
+                if (RemoveSleeperD)
+                {
+                    ExecuteSleeperRemoval(player);
+                }
+            }
         }
 
         public void OnShoot(ShootEvent shootevent)
@@ -340,6 +403,7 @@ namespace AdvancedTester
                     dict["INSERT"] = 0;
                     dict["F2"] = 0;
                     dict["F5"] = 0;
+                    dict["F3"] = 0;
                     var timedEvent2 = CreateParallelTimer(1000, dict);
                     timedEvent2.OnFire += Callback5;
                     timedEvent2.Start();
@@ -425,12 +489,14 @@ namespace AdvancedTester
                         InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
                         F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                         F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
+                        F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
                         IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                         AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                         RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
                         DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                         EnableButtonWarnMessage = Settings.GetBoolSetting("Settings", "EnableButtonWarnMessage");
                         var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
+                        RestrictedCommands.Clear();
                         foreach (var x in cmds)
                         {
                             RestrictedCommands.Add(x);
@@ -572,6 +638,7 @@ namespace AdvancedTester
                         p.Inventory.RemoveItem(30);
                         p.Inventory.RemoveItem(31);
                         p.Inventory.AddItemTo("M4", 30);
+                        p.Inventory.AddItemTo("556 Ammo", 31, 5);
                         int lang = 1;
                         if (DataStore.GetInstance().Get("ADVTEST", p.UID) != null)
                         {
@@ -846,6 +913,7 @@ namespace AdvancedTester
             player.Inventory.RemoveItem(30);
             player.Inventory.RemoveItem(31);
             player.Inventory.AddItemTo("M4", 30);
+            player.Inventory.AddItemTo("556 Ammo", 31, 5);
             player.MessageFrom("AdvancedTest", yellow + "Type /alang to set a different language");
             player.MessageFrom("AdvancedTest", yellow + LanguageDict[TestDataP.LangCode][2]);
             if (EnableButtonWarnMessage)
@@ -957,7 +1025,7 @@ namespace AdvancedTester
             if (!data.RecoilComplete)
             {
                 player.SendCommand("input.mousespeed 0");
-                player.SendCommand("input.bind Up None None");
+                player.SendCommand("input.bind Up F3 None");
                 player.SendCommand("input.bind Down F5 None");
                 player.SendCommand("input.bind Left F2 None");
                 player.SendCommand("input.bind Right INSERT None");
@@ -1000,6 +1068,20 @@ namespace AdvancedTester
             {
                 player.SendCommand("input.bind Up None None");
                 player.SendCommand("input.bind Down F5 None");
+                player.SendCommand("input.bind Left None None");
+                player.SendCommand("input.bind Right None None");
+                player.SendCommand("input.mousespeed 0");
+                player.SendCommand("input.bind Fire Mouse0 W");
+                player.SendCommand("input.bind Jump None None");
+                player.SendCommand("input.bind Duck None None");
+                player.SendCommand("input.bind AltFire None None");
+                player.SendCommand("input.bind Sprint None None");
+                player.SendCommand("input.bind Inventory None None");
+            }
+            else if (!data.ButtonComplete4)
+            {
+                player.SendCommand("input.bind Up F3 None");
+                player.SendCommand("input.bind Down None None");
                 player.SendCommand("input.bind Left None None");
                 player.SendCommand("input.bind Right None None");
                 player.SendCommand("input.mousespeed 0");
@@ -1131,7 +1213,7 @@ namespace AdvancedTester
                 return;
             }
             Vector3 location = (Vector3)dict["Location"];
-            player.TeleportTo(location, false);
+            player.TeleportTo(location);
         }
 
         public void SpawnDelay(AdvancedTesterTE e)
@@ -1392,12 +1474,12 @@ namespace AdvancedTester
             }
             else if (dist > 0.1f)
             {
-                player.SendCommand("input.bind Up F4 None");
-                player.SendCommand("input.bind Down F4 None");
+                player.SendCommand("input.bind Up None None");
+                player.SendCommand("input.bind Down None None");
                 player.SendCommand("input.bind Left F2 None");
-                player.SendCommand("input.bind Right F4 None");
+                player.SendCommand("input.bind Right None None");
                 player.MessageFrom("AdvancedTest", green + "ButtonTest Complete!");
-                dict["ButtonPos"] = pll;
+                dict["ButtonPos"] = player.Location;
                 dict["SCount"] = 0;
                 UnderTesting[player.UID].ButtonComplete = true;
                 var timedEvent3 = CreateParallelTimer(1500, dict);
@@ -1464,12 +1546,12 @@ namespace AdvancedTester
             }
             else if (dist > 0.10f)
             {
-                player.SendCommand("input.bind Up F4 None");
+                player.SendCommand("input.bind Up None None");
                 player.SendCommand("input.bind Down F5 None");
-                player.SendCommand("input.bind Left F4 None");
-                player.SendCommand("input.bind Right F4 None");
+                player.SendCommand("input.bind Left None None");
+                player.SendCommand("input.bind Right None None");
                 player.MessageFrom("AdvancedTest", green + "ButtonTest2 Complete!");
-                dict["ButtonPos"] = pll;
+                dict["ButtonPos"] = player.Location;
                 dict["SCount"] = 0;
                 UnderTesting[player.UID].ButtonComplete2 = true;
                 var timedEvent3 = CreateParallelTimer(1500, dict);
@@ -1536,10 +1618,17 @@ namespace AdvancedTester
             }
             else if (dist > 0.10f)
             {
+                player.SendCommand("input.bind Up None None");
+                player.SendCommand("input.bind Down F3 None");
+                player.SendCommand("input.bind Left None None");
+                player.SendCommand("input.bind Right None None");
                 player.MessageFrom("AdvancedTest", green + "ButtonTest3 Complete!");
+                dict["ButtonPos"] = Vector3.zero;
+                dict["SCount"] = 0;
                 UnderTesting[player.UID].ButtonComplete3 = true;
-                RemoveTest(player);
-                Server.GetServer().BroadcastFrom("AdvancedTest", green + player.Name + " passed all auto tests!");
+                var timedEvent3 = CreateParallelTimer(1500, dict);
+                timedEvent3.OnFire += Callback8;
+                timedEvent3.Start();
                 return;
             }
             if (F5Wait > 0)
@@ -1555,6 +1644,76 @@ namespace AdvancedTester
             timedEvent2.Start();
         }
 
+        public void Callback8(AdvancedTesterTE e)
+        {
+            e.Kill();
+            var dict = e.Args;
+            Vector3 pos = (Vector3)dict["ButtonPos"];
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            if (pos == Vector3.zero)
+            {
+                dict["ButtonPos"] = player.Location;
+                pos = player.Location;
+            }
+            int SCount = (int)dict["SCount"];
+            int SCount2 = (int)dict["SCount2"];
+            int F3 = (int)dict["F3"];
+            var pll = player.Location;
+            if (F3 == 0)
+            {
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][7]);
+            }
+            if (SCount2 != 3)
+            {
+                pos = pll;
+                dict["SCount2"] = 3;
+            }
+            if (F3 == F3Wait && F3Wait != 0)
+            {
+                RemoveTest(player);
+                Server.GetServer().BanPlayer(player, "Console", "F3 Press Timed Out!", null, true);
+                if (RemoveSleeperD)
+                {
+                    ExecuteSleeperRemoval(player);
+                }
+                return;
+            }
+            var dist = Vector3.Distance(pos, pll);
+            if (dist < 0.10f && dist >= 0.001f)
+            {
+                SCount++;
+                if (SCount == 1)
+                {
+                    RemoveTest(player);
+                    Server.GetServer().BanPlayer(player, "Console", "Detected Dizzy Hack.", null, true);
+                    if (RemoveSleeperD)
+                    {
+                        ExecuteSleeperRemoval(player);
+                    }
+                    return;
+                }
+            }
+            else if (dist > 0.10f)
+            {
+                player.MessageFrom("AdvancedTest", green + "ButtonTest4 Complete!");
+                UnderTesting[player.UID].ButtonComplete4 = true;
+                RemoveTest(player);
+                Server.GetServer().BroadcastFrom("AdvancedTest", green + player.Name + " passed all auto tests!");
+                return;
+            }
+            if (F3Wait > 0)
+            {
+                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][7] + " ( " + F3 + "/" + F3Wait + " )");
+                F3++;
+            }
+            dict["ButtonPos"] = pll;
+            dict["SCount"] = SCount;
+            dict["F3"] = F3;
+            var timedEvent2 = CreateParallelTimer(1000, dict);
+            timedEvent2.OnFire += Callback8;
+            timedEvent2.Start();
+        }
+
         public AdvancedTesterTE CreateParallelTimer(int timeoutDelay, Dictionary<string, object> args)
         {
             AdvancedTesterTE timedEvent = new AdvancedTesterTE(timeoutDelay);
@@ -1562,7 +1721,6 @@ namespace AdvancedTester
             return timedEvent;
         }
 
-        // Todo: Put this for an advanced usage after the next Fougerite comes
         public class TestData
         {
             private Fougerite.Player Player;
@@ -1572,6 +1730,7 @@ namespace AdvancedTester
             private bool ButtonTest = false;
             private bool ButtonTest2 = false;
             private bool ButtonTest3 = false;
+            private bool ButtonTest4 = false;
 
             public TestData(Fougerite.Player player, int LangC = 1)
             {
@@ -1613,6 +1772,12 @@ namespace AdvancedTester
             {
                 get { return ButtonTest3; }
                 set { ButtonTest3 = value; }
+            }
+
+            public bool ButtonComplete4
+            {
+                get { return ButtonTest4; }
+                set { ButtonTest4 = value; }
             }
         }
     }
