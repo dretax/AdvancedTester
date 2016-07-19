@@ -82,7 +82,6 @@ namespace AdvancedTester
             Fougerite.Hooks.OnChat += OnChat;
             Fougerite.Hooks.OnModulesLoaded += OnModulesLoaded;
             Fougerite.Hooks.OnShoot += OnShoot;
-            Fougerite.Hooks.OnPlayerMove += OnPlayerMove;
             RestrictedCommands = new List<string>();
             DSNames = new List<string>();
             LanguageDict = new Dictionary<int, Dictionary<int, string>>();
@@ -306,6 +305,11 @@ namespace AdvancedTester
             Fougerite.Hooks.OnModulesLoaded -= OnModulesLoaded;
             Fougerite.Hooks.OnShoot -= OnShoot;
             Fougerite.Hooks.OnPlayerMove -= OnPlayerMove;
+            List<ulong> list = UnderTesting.Keys.ToList();
+            foreach (var x in list)
+            {
+                RemoveTest(Fougerite.Server.Cache[x], true);
+            }
         }
 
         public void OnPlayerMove(HumanController hc, Vector3 origin, int encoded, ushort stateflags, uLink.NetworkMessageInfo info, Util.PlayerActions action)
@@ -648,9 +652,9 @@ namespace AdvancedTester
                         Dictionary<string, object> dict = new Dictionary<string, object>();
                         dict["Location"] = p.Location;
                         dict["Player"] = p;
-                        var timedEvent = CreateParallelTimer(2000, dict);
+                        /*var timedEvent = CreateParallelTimer(2000, dict);
                         timedEvent.OnFire += Callback3;
-                        timedEvent.Start();
+                        timedEvent.Start();*/
 
                         DataStore.GetInstance().Add("RecoilTest", id, "1");
                         p.Notice("You are being tested for recoil!");
@@ -894,6 +898,12 @@ namespace AdvancedTester
             {
                 lang = (int) DataStore.GetInstance().Get("ADVTEST", player.UID);
             }
+            if (UnderTesting.Keys.Count == 0)
+            {
+                // Lets do PowerSaving
+                Fougerite.Hooks.OnPlayerMove -= OnPlayerMove;
+                Fougerite.Hooks.OnPlayerMove += OnPlayerMove;
+            }
             var TestDataP = new TestData(player, lang);
             UnderTesting[player.UID] = TestDataP;
             Dictionary<string, int> itemcount = new Dictionary<string, int>();
@@ -977,6 +987,11 @@ namespace AdvancedTester
             {
                 var vec = OccupiedPositions.FirstOrDefault(x => x.Value == player.UID).Key;
                 OccupiedPositions.Remove(vec);
+            }
+            if (UnderTesting.Keys.Count == 0)
+            {
+                // Lets do PowerSaving
+                Fougerite.Hooks.OnPlayerMove -= OnPlayerMove;
             }
         }
 
@@ -1337,9 +1352,9 @@ namespace AdvancedTester
                 player.MessageFrom("AdvancedTest", yellow + LanguageDict[UnderTesting[player.UID].LangCode][1]);
             }
 
-            var timedEvent = CreateParallelTimer(1500, dict);
+            /*var timedEvent = CreateParallelTimer(1500, dict);
             timedEvent.OnFire += Callback3;
-            timedEvent.Start();
+            timedEvent.Start();*/
 
             Angles[player.UID] = eyeangles;
             AnglesC[player.UID] = 0;
@@ -1350,7 +1365,7 @@ namespace AdvancedTester
             TData[player.UID] = dict;
         }
 
-        public void Callback3(AdvancedTesterTE e)
+        /*public void Callback3(AdvancedTesterTE e)
         {
             var dict = e.Args;
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
@@ -1392,7 +1407,7 @@ namespace AdvancedTester
                     ExecuteSleeperRemoval(player);
                 }
             }
-        }
+        }*/
 
         public void Callback4(AdvancedTesterTE e)
         {
@@ -1458,7 +1473,7 @@ namespace AdvancedTester
                 }
                 return;
             }
-            if (dist < 0.10f && dist >= 0.001f)
+            /*if (dist < 0.10f && dist >= 0.001f)
             {
                 SCount++;
                 if (SCount == 1)
@@ -1471,8 +1486,9 @@ namespace AdvancedTester
                     }
                     return;
                 }
-            }
-            else if (dist > 0.1f)
+            }*/
+            //else if (dist > 0.1f)
+            if (dist > 0.10f)
             {
                 player.SendCommand("input.bind Up None None");
                 player.SendCommand("input.bind Down None None");
@@ -1530,7 +1546,7 @@ namespace AdvancedTester
                 return;
             }
             var dist = Vector3.Distance(pos, pll);
-            if (dist < 0.10f && dist >= 0.001f)
+            /*if (dist < 0.10f && dist >= 0.001f)
             {
                 SCount++;
                 if (SCount == 1)
@@ -1543,8 +1559,9 @@ namespace AdvancedTester
                     }
                     return;
                 }
-            }
-            else if (dist > 0.10f)
+            }*/
+            //else if (dist > 0.10f)
+            if (dist > 0.10f)
             {
                 player.SendCommand("input.bind Up None None");
                 player.SendCommand("input.bind Down F5 None");
@@ -1602,7 +1619,7 @@ namespace AdvancedTester
                 return;
             }
             var dist = Vector3.Distance(pos, pll);
-            if (dist < 0.10f && dist >= 0.001f)
+            /*if (dist < 0.10f && dist >= 0.001f)
             {
                 SCount++;
                 if (SCount == 1)
@@ -1615,8 +1632,9 @@ namespace AdvancedTester
                     }
                     return;
                 }
-            }
-            else if (dist > 0.10f)
+            }*/
+            //else if (dist > 0.10f)
+            if (dist > 0.10f)
             {
                 player.SendCommand("input.bind Up None None");
                 player.SendCommand("input.bind Down F3 None");
@@ -1679,7 +1697,7 @@ namespace AdvancedTester
                 return;
             }
             var dist = Vector3.Distance(pos, pll);
-            if (dist < 0.10f && dist >= 0.001f)
+            /*if (dist < 0.10f && dist >= 0.001f)
             {
                 SCount++;
                 if (SCount == 1)
@@ -1692,8 +1710,9 @@ namespace AdvancedTester
                     }
                     return;
                 }
-            }
-            else if (dist > 0.10f)
+            }*/
+            //else if (dist > 0.10f)
+            if (dist > 0.10f)
             {
                 player.MessageFrom("AdvancedTest", green + "ButtonTest4 Complete!");
                 UnderTesting[player.UID].ButtonComplete4 = true;
