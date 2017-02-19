@@ -25,16 +25,16 @@ namespace AdvancedTester
         public Dictionary<ulong, Dictionary<string, int>> storage;
         public Dictionary<ulong, int> Reports;
         public Dictionary<Vector3, ulong> OccupiedPositions;
-        public List<Vector3> TestPlaces; 
         public Dictionary<ulong, TestData> UnderTesting;
-        public Dictionary<ulong, int> TestCooldown;
+        public Dictionary<ulong, double> TestCooldown;
         public Dictionary<ulong, Vector3> LastPos;
         public Dictionary<ulong, List<ulong>> ReportC;
         public Dictionary<string, int> LanguageData;
         public Dictionary<int, Dictionary<int, string>> LanguageDict;
         public Dictionary<ulong, Angle2> Angles;
         public Dictionary<ulong, int> AnglesC;
-        public Dictionary<ulong, Dictionary<string, object>> TData; 
+        public Dictionary<ulong, Dictionary<string, object>> TData;
+        public List<Vector3> TestPlaces;
         public List<string> DSNames; 
         public List<string> RestrictedCommands;
         public int ReportsNeeded = 3;
@@ -44,13 +44,16 @@ namespace AdvancedTester
         public int F2Wait = 0;
         public int F5Wait = 0;
         public int F3Wait = 0;
+        public int MaxTest = 2;
+        public int IgnoreDropIfPing = 170;
         public IniParser Settings;
         public bool GeoIPSupport = false;
         public bool AutoTestOnJoin = false;
         public bool DropTest = true;
         public bool RemoveSleeperD = false;
         public bool EnableButtonWarnMessage = false;
-        public int IgnoreDropIfPing = 170;
+        public bool UnBindTab = true;
+        public bool MenuHackBan = true;
 
         public override string Name
         {
@@ -69,7 +72,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.6.0"); }
+            get { return new Version("1.6.1"); }
         }
 
         public override void Initialize()
@@ -96,6 +99,7 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "F2Wait", "0");
                 Settings.AddSetting("Settings", "F5Wait", "0");
                 Settings.AddSetting("Settings", "F3Wait", "0");
+                Settings.AddSetting("Settings", "MaxTest", "2");
                 Settings.AddSetting("Settings", "ReportsNeeded", "3");
                 Settings.AddSetting("Settings", "DropTest", "True");
                 Settings.AddSetting("Settings", "RestrictedCommands", "tpa,home,tpaccept,hg");
@@ -104,6 +108,8 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "IgnoreDropIfPing", "170");
                 Settings.AddSetting("Settings", "RemoveSleeperD", "False");
                 Settings.AddSetting("Settings", "EnableButtonWarnMessage", "False");
+                Settings.AddSetting("Settings", "MenuHackBan", "True");
+                Settings.AddSetting("Settings", "UnBindTab", "True");
                 Settings.AddSetting("Languages", "1", "English");
                 Settings.AddSetting("Languages", "2", "Hungarian");
                 Settings.AddSetting("Languages", "3", "Russian");
@@ -221,18 +227,21 @@ namespace AdvancedTester
             try
             {
                 Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
-                TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
+                TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery")) * 60;
                 RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
                 ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
                 InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
                 F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                 F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
                 F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
+                MaxTest = int.Parse(Settings.GetSetting("Settings", "MaxTest"));
                 IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                 AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                 DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                 RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
                 EnableButtonWarnMessage = Settings.GetBoolSetting("Settings", "EnableButtonWarnMessage");
+                UnBindTab = Settings.GetBoolSetting("Settings", "UnBindTab");
+                MenuHackBan = Settings.GetBoolSetting("Settings", "MenuHackBan");
                 var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                 foreach (var x in cmds)
                 {
@@ -270,7 +279,7 @@ namespace AdvancedTester
             Reports = new Dictionary<ulong, int>();
             OccupiedPositions = new Dictionary<Vector3, ulong>();
             UnderTesting = new Dictionary<ulong, TestData>();
-            TestCooldown = new Dictionary<ulong, int>();
+            TestCooldown = new Dictionary<ulong, double>();
             LastPos = new Dictionary<ulong, Vector3>();
             ReportC = new Dictionary<ulong, List<ulong>>();
             Angles = new Dictionary<ulong, Angle2>();
@@ -329,7 +338,7 @@ namespace AdvancedTester
                 }
                 return;
             }
-            if (action == Util.PlayerActions.TAB)
+            if (action == Util.PlayerActions.TAB && MenuHackBan)
             {
                 RemoveTest(player);
                 Server.GetServer().BanPlayer(player, "Console", "Menu hack Detected!", null, true);
@@ -344,6 +353,7 @@ namespace AdvancedTester
         {
             if (shootevent.Player != null)
             {
+                if (!UnderTesting.ContainsKey(shootevent.Player.UID)) { return; }
                 if (DataStore.GetInstance().ContainsKey("RecoilTest", shootevent.Player.UID))
                 {
                     shootevent.IBulletWeaponItem.clipAmmo = 24;
@@ -424,6 +434,7 @@ namespace AdvancedTester
             }
             if (DataStore.GetInstance().Get("ADVTEST", player.UID) != null) { return;}
             Thread thread = new Thread(() => DetermineLocation(player));
+            thread.IsBackground = true;
             thread.Start();
         }
 
@@ -487,18 +498,20 @@ namespace AdvancedTester
                     if (player.Admin)
                     {
                         Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
-                        TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery"));
+                        TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery")) * 60;
                         RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
                         ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
                         InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
                         F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
                         F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
                         F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
+                        MaxTest = int.Parse(Settings.GetSetting("Settings", "MaxTest"));
                         IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                         AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                         RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
                         DropTest = Settings.GetBoolSetting("Settings", "DropTest");
-                        EnableButtonWarnMessage = Settings.GetBoolSetting("Settings", "EnableButtonWarnMessage");
+                        UnBindTab = Settings.GetBoolSetting("Settings", "UnBindTab");
+                        MenuHackBan = Settings.GetBoolSetting("Settings", "MenuHackBan");
                         var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                         RestrictedCommands.Clear();
                         foreach (var x in cmds)
@@ -719,6 +732,12 @@ namespace AdvancedTester
                         player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
                         return;
                     }
+                    if (UnderTesting.Keys.Count == MaxTest)
+                    {
+                            player.MessageFrom("AdvancedTest", red 
+                                + "Too many Players being tested! Wait for them to finish! (Max: " + MaxTest + ")");
+                            return;
+                    }
                     StartTest(p);
                     player.MessageFrom("AdvancedTest", green + "Test Started.");
                     break;
@@ -788,24 +807,22 @@ namespace AdvancedTester
                         player.MessageFrom("AdvancedTest", red + "Player cannot be tested this time, wait a bit!");
                         return;
                     }
+                    if (UnderTesting.Keys.Count == MaxTest)
+                    {
+                        player.MessageFrom("AdvancedTest", red
+                                + "Too many Players being tested! Wait for them to finish! (Max: " + MaxTest + ")");
+                        return;
+                    }
                     if (TestCooldown.ContainsKey(p.UID))
                     {
-                        var ticks = TestCooldown[p.UID];
-                        var calc = System.Environment.TickCount - ticks;
-                        if (calc > 0 || !double.IsNaN(calc) || !double.IsNaN(ticks))
+                        var Time = TestCooldown[p.UID];
+                        var diff = (TimeSpan.FromTicks(DateTime.Now.Ticks).TotalSeconds - Time);
+                        if (diff >= TestAllowedEvery)
                         {
-                            var done = Math.Round((float) ((calc/1000)/60));
-                            var done2 = Math.Round((float) ((ticks / 1000)/60));
+                            var done = Math.Round(diff);
+                            var done2 = Math.Round(Time);
                             player.MessageFrom("AdvancedTest",
-                                "Player has report cooldown for: " + (done2 - done) + " minutes!");
-                            return;
-                        }
-                        if (calc < TestAllowedEvery * 60000)
-                        {
-                            var done = Math.Round((float) ((calc/1000)/60));
-                            var done2 = Math.Round((float) ((ticks / 1000)/60));
-                            player.MessageFrom("AdvancedTest",
-                                "Player has report cooldown for: " + (done2 - done) + " minutes!");
+                                "Player has report cooldown for: " + (done2 - done) + " seconds!");
                             return;
                         }
                     }
@@ -863,7 +880,7 @@ namespace AdvancedTester
                 player.RestrictCommand(x);
             }
             LastPos[player.UID] = player.Location;
-            TestCooldown[player.UID] = Environment.TickCount;
+            TestCooldown[player.UID] = TimeSpan.FromTicks(DateTime.Now.Ticks).TotalSeconds;
             if (Reports.ContainsKey(player.UID))
             {
                 Reports.Remove(player.UID);
@@ -1013,7 +1030,7 @@ namespace AdvancedTester
                 DataStore.GetInstance().Remove("ADVTESTAUTO", player.UID);
                 var dict = new Dictionary<string, object>();
                 dict["Player"] = player;
-                var timedEvent = CreateParallelTimer(2000, dict);
+                var timedEvent = CreateParallelTimer(5000, dict);
                 timedEvent.OnFire += SpawnDelay;
                 timedEvent.Start();
             }
@@ -1049,7 +1066,10 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Duck None None");
                 player.SendCommand("input.bind AltFire None None");
                 player.SendCommand("input.bind Sprint None None");
-                player.SendCommand("input.bind Inventory None None");
+                if (UnBindTab)
+                {
+                    player.SendCommand("input.bind Inventory None None");
+                }
             }
             else if (!data.ButtonComplete)
             {
@@ -1063,7 +1083,10 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Duck None None");
                 player.SendCommand("input.bind AltFire None None");
                 player.SendCommand("input.bind Sprint None None");
-                player.SendCommand("input.bind Inventory None None");
+                if (UnBindTab)
+                {
+                    player.SendCommand("input.bind Inventory None None");
+                }
             }
             else if (!data.ButtonComplete2)
             {
@@ -1077,7 +1100,10 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Duck None None");
                 player.SendCommand("input.bind AltFire None None");
                 player.SendCommand("input.bind Sprint None None");
-                player.SendCommand("input.bind Inventory None None");
+                if (UnBindTab)
+                {
+                    player.SendCommand("input.bind Inventory None None");
+                }
             }
             else if (!data.ButtonComplete3)
             {
@@ -1091,7 +1117,10 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Duck None None");
                 player.SendCommand("input.bind AltFire None None");
                 player.SendCommand("input.bind Sprint None None");
-                player.SendCommand("input.bind Inventory None None");
+                if (UnBindTab)
+                {
+                    player.SendCommand("input.bind Inventory None None");
+                }
             }
             else if (!data.ButtonComplete4)
             {
@@ -1105,7 +1134,10 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Duck None None");
                 player.SendCommand("input.bind AltFire None None");
                 player.SendCommand("input.bind Sprint None None");
-                player.SendCommand("input.bind Inventory None None");
+                if (UnBindTab)
+                {
+                    player.SendCommand("input.bind Inventory None None");
+                }
             }
             return true;
         }
@@ -1124,7 +1156,10 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Duck None None");
                 player.SendCommand("input.bind AltFire None None");
                 player.SendCommand("input.bind Sprint None None");
-                player.SendCommand("input.bind Inventory None None");
+                if (UnBindTab)
+                {
+                    player.SendCommand("input.bind Inventory None None");
+                }
             }
             else
             {
@@ -1156,7 +1191,10 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Duck None None");
                 player.SendCommand("input.bind AltFire None None");
                 player.SendCommand("input.bind Sprint None None");
-                player.SendCommand("input.bind Inventory None None");
+                if (UnBindTab)
+                {
+                    player.SendCommand("input.bind Inventory None None");
+                }
             }
             else
             {
@@ -1187,7 +1225,10 @@ namespace AdvancedTester
                 player.SendCommand("input.bind AltFire None None");
                 player.SendCommand("input.bind Sprint None None");
                 player.SendCommand("input.bind Duck None None");
-                player.SendCommand("input.bind Inventory None None");
+                if (UnBindTab)
+                {
+                    player.SendCommand("input.bind Inventory None None");
+                }
             }
             else
             {
@@ -1229,6 +1270,7 @@ namespace AdvancedTester
             }
             Vector3 location = (Vector3)dict["Location"];
             player.TeleportTo(location);
+            player.MessageFrom("AdvancedTest", green + "Double teleported!");
         }
 
         public void SpawnDelay(AdvancedTesterTE e)
