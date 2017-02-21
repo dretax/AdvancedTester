@@ -906,7 +906,6 @@ namespace AdvancedTester
 
         public void StartTest(Fougerite.Player player)
         {
-            player.Inventory.InternalInventory.Invalidate();
             SendAutoTest(player);
             foreach (var x in RestrictedCommands)
             {
