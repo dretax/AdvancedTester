@@ -46,6 +46,7 @@ namespace AdvancedTester
         public int F3Wait = 0;
         public int MaxTest = 2;
         public int IgnoreDropIfPing = 170;
+        public int WarnSeconds = 5;
         public IniParser Settings;
         public bool GeoIPSupport = false;
         public bool AutoTestOnJoin = false;
@@ -54,6 +55,7 @@ namespace AdvancedTester
         public bool EnableButtonWarnMessage = false;
         public bool UnBindTab = true;
         public bool MenuHackBan = true;
+        public bool WarnInventoryBeforeTest = false;
 
         public override string Name
         {
@@ -72,7 +74,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.6.1"); }
+            get { return new Version("1.6.2"); }
         }
 
         public override void Initialize()
@@ -110,6 +112,8 @@ namespace AdvancedTester
                 Settings.AddSetting("Settings", "EnableButtonWarnMessage", "False");
                 Settings.AddSetting("Settings", "MenuHackBan", "True");
                 Settings.AddSetting("Settings", "UnBindTab", "True");
+                Settings.AddSetting("Settings", "WarnInventoryBeforeTest", "False");
+                Settings.AddSetting("Settings", "WarnSeconds", "5");
                 Settings.AddSetting("Languages", "1", "English");
                 Settings.AddSetting("Languages", "2", "Hungarian");
                 Settings.AddSetting("Languages", "3", "Russian");
@@ -235,6 +239,7 @@ namespace AdvancedTester
                 F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
                 F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
                 MaxTest = int.Parse(Settings.GetSetting("Settings", "MaxTest"));
+                WarnSeconds = int.Parse(Settings.GetSetting("Settings", "WarnSeconds"));
                 IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
                 AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                 DropTest = Settings.GetBoolSetting("Settings", "DropTest");
@@ -242,6 +247,7 @@ namespace AdvancedTester
                 EnableButtonWarnMessage = Settings.GetBoolSetting("Settings", "EnableButtonWarnMessage");
                 UnBindTab = Settings.GetBoolSetting("Settings", "UnBindTab");
                 MenuHackBan = Settings.GetBoolSetting("Settings", "MenuHackBan");
+                WarnInventoryBeforeTest = Settings.GetBoolSetting("Settings", "WarnInventoryBeforeTest");
                 var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                 foreach (var x in cmds)
                 {
@@ -507,11 +513,13 @@ namespace AdvancedTester
                         F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
                         MaxTest = int.Parse(Settings.GetSetting("Settings", "MaxTest"));
                         IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
+                        WarnSeconds = int.Parse(Settings.GetSetting("Settings", "WarnSeconds"));
                         AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
                         RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
                         DropTest = Settings.GetBoolSetting("Settings", "DropTest");
                         UnBindTab = Settings.GetBoolSetting("Settings", "UnBindTab");
                         MenuHackBan = Settings.GetBoolSetting("Settings", "MenuHackBan");
+                        WarnInventoryBeforeTest = Settings.GetBoolSetting("Settings", "WarnInventoryBeforeTest");
                         var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
                         RestrictedCommands.Clear();
                         foreach (var x in cmds)
@@ -738,7 +746,19 @@ namespace AdvancedTester
                                 + "Too many Players being tested! Wait for them to finish! (Max: " + MaxTest + ")");
                             return;
                     }
-                    StartTest(p);
+                    if (WarnInventoryBeforeTest)
+                    {
+                        p.Notice("", p.Name + " test starting, CLOSE your INVENTORY!", 8f);
+                        Dictionary<string, object> dict = new Dictionary<string, object>();
+                        dict["Player"] = p;
+                        var timedEvent = CreateParallelTimer(WarnSeconds * 1000, dict);
+                        timedEvent.OnFire += DelayTest;
+                        timedEvent.Start();
+                    }
+                    else
+                    {
+                        StartTest(p);
+                    }
                     player.MessageFrom("AdvancedTest", green + "Test Started.");
                     break;
                 }
@@ -861,7 +881,19 @@ namespace AdvancedTester
                     if (Reports[p.UID] == ReportsNeeded)
                     {
                         Server.GetServer().BroadcastFrom("AdvancedTest", red + p.Name + " received enough reports. Auto test is starting.");
-                        StartTest(p);
+                        if (WarnInventoryBeforeTest)
+                        {
+                            p.Notice("", p.Name + " test starting, CLOSE your INVENTORY!", 8f);
+                            Dictionary<string, object> dict = new Dictionary<string, object>();
+                            dict["Player"] = p;
+                            var timedEvent = CreateParallelTimer(WarnSeconds * 1000, dict);
+                            timedEvent.OnFire += DelayTest;
+                            timedEvent.Start();
+                        }
+                        else
+                        {
+                            StartTest(p);
+                        }
                     }
                     else
                     {
@@ -874,6 +906,7 @@ namespace AdvancedTester
 
         public void StartTest(Fougerite.Player player)
         {
+            player.Inventory.InternalInventory.Invalidate();
             SendAutoTest(player);
             foreach (var x in RestrictedCommands)
             {
@@ -1324,6 +1357,16 @@ namespace AdvancedTester
                     }
                 }
             }
+        }
+
+        public void DelayTest(AdvancedTesterTE e)
+        {
+            var dict = e.Args;
+            e.Kill();
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            Loom.QueueOnMainThread(() => {
+                StartTest(player);
+            });
         }
 
         public void Callback(AdvancedTesterTE e)
