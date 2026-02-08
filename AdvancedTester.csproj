@@ -31,37 +31,31 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Assembly-CSharp">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\FougeriteProject\bin\Assembly-CSharp.dll</HintPath>
+      <HintPath>d:\Projects\NETPlatform\Visual Studio 2013\FougeriteProject\bin\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="Facepunch.ID, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Facepunch.ID">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\IPMOld\IronPythonModule\ref\Facepunch.ID.dll</HintPath>
+      <HintPath>d:\Projects\NETPlatform\Visual Studio 2013\FougeriteProject\bin\Facepunch.ID.dll</HintPath>
     </Reference>
     <Reference Include="Fougerite">
-      <HintPath>..\..\FougeriteProject\bin\Fougerite.dll</HintPath>
+      <HintPath>d:\Projects\NETPlatform\Visual Studio 2013\FougeriteProject\bin\Fougerite.dll</HintPath>
     </Reference>
     <Reference Include="GeoIP">
       <HintPath>..\..\FougeriteProject\References\GeoIP.dll</HintPath>
     </Reference>
-    <Reference Include="Google.ProtocolBuffers, Version=2.4.1.521, Culture=neutral, PublicKeyToken=55f7125234beb589, processorArchitecture=MSIL">
+    <Reference Include="Google.ProtocolBuffers">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\FougeriteProject\bin\Google.ProtocolBuffers.dll</HintPath>
+      <HintPath>d:\Projects\NETPlatform\Visual Studio 2013\FougeriteProject\bin\Google.ProtocolBuffers.dll</HintPath>
     </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="uLink, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="uLink">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\FougeriteProject\bin\uLink.dll</HintPath>
+      <HintPath>d:\Projects\NETPlatform\Visual Studio 2013\FougeriteProject\bin\uLink.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="UnityEngine">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\FougeriteProject\bin\UnityEngine.dll</HintPath>
+      <HintPath>d:\Projects\NETPlatform\Visual Studio 2013\FougeriteProject\bin\UnityEngine.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

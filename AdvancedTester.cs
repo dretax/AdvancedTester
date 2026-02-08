@@ -35,7 +35,7 @@ namespace AdvancedTester
         public Dictionary<ulong, int> AnglesC;
         public Dictionary<ulong, Dictionary<string, object>> TData;
         public List<Vector3> TestPlaces;
-        public List<string> DSNames; 
+        public List<string> DSNames;
         public List<string> RestrictedCommands;
         public int ReportsNeeded = 3;
         public int TestAllowedEvery = 15;
@@ -74,7 +74,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.6.2"); }
+            get { return new Version("1.6.3"); }
         }
 
         public override void Initialize()
@@ -177,14 +177,16 @@ namespace AdvancedTester
                 Settings.AddSetting("Russian", "5", "Продолжайте нажимать F2");
                 Settings.AddSetting("Russian", "6", "Продолжайте нажимать F5");
                 Settings.AddSetting("Russian", "7", "Продолжайте нажимать F3");
-                Settings.AddSetting("Portuguese", "1", "Não carregues no F2 / F5 / Insert sem te pedirem para o fazer!");
+                Settings.AddSetting("Portuguese", "1",
+                    "Não carregues no F2 / F5 / Insert sem te pedirem para o fazer!");
                 Settings.AddSetting("Portuguese", "2", "Sair do teste vai resultar em autoban!");
                 Settings.AddSetting("Portuguese", "3", "Pega na M4, recarrega-a e dispara-a sem parar!");
                 Settings.AddSetting("Portuguese", "4", "Carrega no Insert/Ins/NUMPAD 0 continuamente.");
                 Settings.AddSetting("Portuguese", "5", "Carrega no F2 continuamente.");
                 Settings.AddSetting("Portuguese", "6", "Carrega no F5 continuamente.");
                 Settings.AddSetting("Portuguese", "7", "Carrega no F3 continuamente.");
-                Settings.AddSetting("Romanian", "1", "Nu apasa tastele F2 / F5 / Insert pana nu iti spune plug - inul sa o faci");
+                Settings.AddSetting("Romanian", "1",
+                    "Nu apasa tastele F2 / F5 / Insert pana nu iti spune plug - inul sa o faci");
                 Settings.AddSetting("Romanian", "2", "Daca te deconectezi in timp ce esti testat vei lua ban automat");
                 Settings.AddSetting("Romanian", "3", "Echipeaza M4 - ul, incarca - l si trage!");
                 Settings.AddSetting("Romanian", "4", "Apasa tasta Insert/Ins/NUMPAD 0 incontinuu");
@@ -192,7 +194,8 @@ namespace AdvancedTester
                 Settings.AddSetting("Romanian", "6", "Apasa tasta F5 incontinuu");
                 Settings.AddSetting("Romanian", "7", "Apasa tasta F3 incontinuu");
                 Settings.AddSetting("Spanish", "1", "No pulses F2/ F5 / Insert hasta que el plugin lo diga");
-                Settings.AddSetting("Spanish", "2", "Desconectarse del servidor durante el test causará un baneo automático");
+                Settings.AddSetting("Spanish", "2",
+                    "Desconectarse del servidor durante el test causará un baneo automático");
                 Settings.AddSetting("Spanish", "3", "Equipa tu M4, recarga y dispara");
                 Settings.AddSetting("Spanish", "4", "Sigue pulsando Insert/Ins/NUMPAD 0");
                 Settings.AddSetting("Spanish", "5", "Sigue pulsando F2");
@@ -205,7 +208,8 @@ namespace AdvancedTester
                 Settings.AddSetting("Arabic", "5", "ادغط F2 باستمرار");
                 Settings.AddSetting("Arabic", "6", "ادغط F5 باستمرار");
                 Settings.AddSetting("Arabic", "7", "ادغط F3 باستمرار");
-                Settings.AddSetting("Italian", "1", "Non premere F2 / F5 / Insert sino a quando non te lo chiede il plugin!");
+                Settings.AddSetting("Italian", "1",
+                    "Non premere F2 / F5 / Insert sino a quando non te lo chiede il plugin!");
                 Settings.AddSetting("Italian", "2", "Se ti disconnetti dal test verrai autobannato!");
                 Settings.AddSetting("Italian", "3", "Prendi il tuo M4, ricaricalo e spara!");
                 Settings.AddSetting("Italian", "4", "Tieni premuto Insert/Ins/NUMPAD 0");
@@ -220,7 +224,8 @@ namespace AdvancedTester
                 Settings.AddSetting("Dutch", "6", "Blijf F5 ingedrukt houden");
                 Settings.AddSetting("Dutch", "7", "Blijf F3 ingedrukt houden");
                 Settings.AddSetting("German", "1", "Drücke nicht F2 / F5 / Einfg, bevor du dazu aufgefordert wirst");
-                Settings.AddSetting("German", "2", "Wenn du während dem Test die Verbindung trennst oder Rust schließt, wirst du gebannt");
+                Settings.AddSetting("German", "2",
+                    "Wenn du während dem Test die Verbindung trennst oder Rust schließt, wirst du gebannt");
                 Settings.AddSetting("German", "3", "Nehme die M4 und schieße!");
                 Settings.AddSetting("German", "4", "Halte die Taste Einfügen / Einfg / Ziffernblock Taste 0 gedrückt");
                 Settings.AddSetting("German", "5", "Halte die Taste F2 gedrückt");
@@ -228,6 +233,7 @@ namespace AdvancedTester
                 Settings.AddSetting("German", "7", "Halte die Taste F3 gedrückt");
                 Settings.Save();
             }
+
             try
             {
                 Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
@@ -253,11 +259,13 @@ namespace AdvancedTester
                 {
                     RestrictedCommands.Add(x);
                 }
+
                 var dsnamesc = Settings.GetSetting("Settings", "DSNames").Split(Convert.ToChar(","));
                 foreach (var x in dsnamesc)
                 {
                     DSNames.Add(x);
                 }
+
                 var langcodes = Settings.EnumSection("Languages");
                 foreach (var x in langcodes)
                 {
@@ -268,8 +276,10 @@ namespace AdvancedTester
                     {
                         langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
                     }
+
                     LanguageDict[int.Parse(x)] = langmdata;
                 }
+
                 var langdata = Settings.EnumSection("LanguageData");
                 foreach (var x in langdata)
                 {
@@ -281,6 +291,7 @@ namespace AdvancedTester
             {
                 Logger.LogError("[AdvancedTester] Failed to read the config! Fix It! " + ex);
             }
+
             storage = new Dictionary<ulong, Dictionary<string, int>>();
             Reports = new Dictionary<ulong, int>();
             OccupiedPositions = new Dictionary<Vector3, ulong>();
@@ -327,14 +338,17 @@ namespace AdvancedTester
             }
         }
 
-        public void OnPlayerMove(HumanController hc, Vector3 origin, int encoded, ushort stateflags, uLink.NetworkMessageInfo info, Util.PlayerActions action)
+        public void OnPlayerMove(HumanController hc, Vector3 origin, int encoded, ushort stateflags,
+            uLink.NetworkMessageInfo info, Util.PlayerActions action)
         {
             if (!UnderTesting.ContainsKey(hc.netUser.userID))
             {
                 return;
             }
-            Fougerite.Player player = Fougerite.Server.Cache.ContainsKey(hc.netUser.userID) ? Fougerite.Server.Cache[hc.netUser.userID]
-                    : Fougerite.Server.GetServer().FindPlayer(hc.netUser.userID.ToString());
+
+            Fougerite.Player player = Fougerite.Server.Cache.ContainsKey(hc.netUser.userID)
+                ? Fougerite.Server.Cache[hc.netUser.userID]
+                : Fougerite.Server.GetServer().FindPlayer(hc.netUser.userID.ToString());
             if (player == null)
             {
                 if (hc.netUser == null) return;
@@ -342,8 +356,10 @@ namespace AdvancedTester
                 {
                     hc.netUser.Kick(NetError.NoError, true);
                 }
+
                 return;
             }
+
             if (action == Util.PlayerActions.TAB && MenuHackBan)
             {
                 RemoveTest(player);
@@ -359,24 +375,32 @@ namespace AdvancedTester
         {
             if (shootevent.Player != null)
             {
-                if (!UnderTesting.ContainsKey(shootevent.Player.UID)) { return; }
+                if (!UnderTesting.ContainsKey(shootevent.Player.UID))
+                {
+                    return;
+                }
+
                 if (DataStore.GetInstance().ContainsKey("RecoilTest", shootevent.Player.UID))
                 {
                     shootevent.IBulletWeaponItem.clipAmmo = 24;
                     return;
                 }
+
                 if (!Angles.ContainsKey(shootevent.Player.UID) || !UnderTesting.ContainsKey(shootevent.Player.UID))
                 {
                     return;
                 }
+
                 if (!shootevent.BulletWeaponDataBlock.name.ToLower().Contains("m4"))
                 {
                     return;
                 }
+
                 if (AnglesC.ContainsKey(shootevent.Player.UID))
                 {
                     AnglesC[shootevent.Player.UID] = 0;
                 }
+
                 shootevent.IBulletWeaponItem.clipAmmo = 24;
                 var player = shootevent.Player;
                 Character c = player.PlayerClient.netUser.playerClient.controllable.character;
@@ -413,8 +437,10 @@ namespace AdvancedTester
                         {
                             player.Inventory.AddItem(x, n[x]);
                         }
+
                         storage.Remove(player.UID);
                     }
+
                     var dict = TData[player.UID];
                     Vector3 pos = (Vector3)dict["Location"];
                     dict["ButtonPos"] = pos;
@@ -438,7 +464,12 @@ namespace AdvancedTester
             {
                 return;
             }
-            if (DataStore.GetInstance().Get("ADVTEST", player.UID) != null) { return;}
+
+            if (DataStore.GetInstance().Get("ADVTEST", player.UID) != null)
+            {
+                return;
+            }
+
             Thread thread = new Thread(() => DetermineLocation(player));
             thread.IsBackground = true;
             thread.Start();
@@ -448,7 +479,8 @@ namespace AdvancedTester
         {
             var GeoIPS = GeoIP.GeoIP.Instance;
             var data = GeoIPS.GetDataOfIP(player.IP);
-            DataStore.GetInstance().Add("ADVTEST", player.UID, LanguageData.ContainsKey(data.Country) ? LanguageData[data.Country] : 1);
+            DataStore.GetInstance().Add("ADVTEST", player.UID,
+                LanguageData.ContainsKey(data.Country) ? LanguageData[data.Country] : 1);
         }
 
         public void OnModulesLoaded()
@@ -463,13 +495,18 @@ namespace AdvancedTester
         {
             if (text.OriginalMessage.ToLower().Contains("hack"))
             {
-                player.Notice("If you see a hacker, report him using /areport name - " + ReportsNeeded + " votes = AutoTest!");
+                player.Notice("If you see a hacker, report him using /areport name - " + ReportsNeeded +
+                              " votes = AutoTest!");
             }
         }
 
         public void OnPlayerDisconnected(Fougerite.Player player)
         {
-            if (!UnderTesting.ContainsKey(player.UID)) { return;}
+            if (!UnderTesting.ContainsKey(player.UID))
+            {
+                return;
+            }
+
             Server.GetServer().BanPlayer(player, "Console", "Disconnecting from AdvancedTest", null, true);
             RemoveTest(player, true);
             if (RemoveSleeperD)
@@ -482,13 +519,14 @@ namespace AdvancedTester
         {
             if (he.VictimIsPlayer && he.Victim != null)
             {
-                Fougerite.Player player = (Fougerite.Player) he.Victim;
+                Fougerite.Player player = (Fougerite.Player)he.Victim;
                 if (UnderTesting.ContainsKey(player.UID))
                 {
                     if (he.WeaponName == "Fall Damage")
                     {
                         UnderTesting[player.UID].FallComplete = true;
                     }
+
                     he.DamageAmount = 0f;
                 }
             }
@@ -500,7 +538,8 @@ namespace AdvancedTester
             {
                 case "advancedtest":
                 {
-                    player.MessageFrom("AdvancedTest", green + "AdvancedTest " + yellow + " V" + Version + " [COLOR#FFFFFF] By DreTaX");
+                    player.MessageFrom("AdvancedTest",
+                        green + "AdvancedTest " + yellow + " V" + Version + " [COLOR#FFFFFF] By DreTaX");
                     if (player.Admin)
                     {
                         Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
@@ -526,6 +565,7 @@ namespace AdvancedTester
                         {
                             RestrictedCommands.Add(x);
                         }
+
                         var langcodes = Settings.EnumSection("Languages");
                         foreach (var x in langcodes)
                         {
@@ -536,9 +576,11 @@ namespace AdvancedTester
                             {
                                 langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
                             }
+
                             LanguageDict[int.Parse(x)] = langmdata;
                         }
                     }
+
                     break;
                 }
                 case "alang":
@@ -561,16 +603,18 @@ namespace AdvancedTester
                             {
                                 UnderTesting[player.UID].LangCode = i;
                             }
+
                             DataStore.GetInstance().Add("ADVTEST", player.UID, i);
                             player.MessageFrom("AdvancedTest",
                                 green + "Language Set to: " + Settings.GetSetting("Languages", s));
                         }
                         else
                         {
-                            player.MessageFrom("AdvancedTest", red + "Entered Value doesn't exist or It's not a number!");
+                            player.MessageFrom("AdvancedTest",
+                                red + "Entered Value doesn't exist or It's not a number!");
                         }
-
                     }
+
                     break;
                 }
                 case "alangflush":
@@ -580,6 +624,7 @@ namespace AdvancedTester
                         DataStore.GetInstance().Flush("ADVTEST");
                         player.MessageFrom("AdvancedTest", "Flushed!");
                     }
+
                     break;
                 }
                 case "recoiltest":
@@ -588,11 +633,13 @@ namespace AdvancedTester
                     {
                         return;
                     }
+
                     if (args.Length == 0)
                     {
                         player.MessageFrom("RecoilTest", red + "Usage: /recoiltest playername - To Start/Stop Testing");
                         return;
                     }
+
                     string s = string.Join(" ", args);
                     Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
                     if (p == null)
@@ -600,6 +647,7 @@ namespace AdvancedTester
                         player.MessageFrom("RecoilTest", red + "Couldn't find " + s + "!");
                         return;
                     }
+
                     ulong id = p.UID;
                     if (DataStore.GetInstance().ContainsKey("RecoilTest", id))
                     {
@@ -608,6 +656,7 @@ namespace AdvancedTester
                             player.MessageFrom("AdvancedTest", "Player is not being tested!");
                             return;
                         }
+
                         Send(p, false);
                         if (storage.ContainsKey(p.UID))
                         {
@@ -618,20 +667,25 @@ namespace AdvancedTester
                             {
                                 p.Inventory.AddItem(x, n[x]);
                             }
+
                             storage.Remove(p.UID);
                         }
+
                         if (UnderTesting.ContainsKey(p.UID))
                         {
                             UnderTesting.Remove(p.UID);
                         }
+
                         if (Angles.ContainsKey(p.UID))
                         {
                             Angles.Remove(p.UID);
                         }
+
                         if (AnglesC.ContainsKey(p.UID))
                         {
                             AnglesC.Remove(p.UID);
                         }
+
                         DataStore.GetInstance().Remove("RecoilTest", id);
                         player.MessageFrom("RecoilTest", red + "Testing ended for " + p.Name);
                         p.Notice("Recoil Test ended!");
@@ -643,6 +697,7 @@ namespace AdvancedTester
                             player.MessageFrom("AdvancedTest", "Player is currently being tested!");
                             return;
                         }
+
                         player.MessageFrom("RecoilTest", red + "Testing started for " + p.Name);
                         player.MessageFrom("RecoilTest", red + "/recoiltest name - to finish");
                         Send(p);
@@ -652,13 +707,17 @@ namespace AdvancedTester
                         if (!p.Inventory.BarItems[0].IsEmpty())
                         {
                             itemcount[p.Inventory.BarItems[0].Name] = p.Inventory.BarItems[0].Quantity;
-                            player.MessageFrom("RecoilTest", red + p.Inventory.BarItems[0].Name + " / " + p.Inventory.BarItems[0].Quantity);
+                            player.MessageFrom("RecoilTest",
+                                red + p.Inventory.BarItems[0].Name + " / " + p.Inventory.BarItems[0].Quantity);
                         }
+
                         if (!p.Inventory.BarItems[1].IsEmpty())
                         {
                             itemcount[p.Inventory.BarItems[1].Name] = p.Inventory.BarItems[1].Quantity;
-                            player.MessageFrom("RecoilTest", red + p.Inventory.BarItems[1].Name + " / " + p.Inventory.BarItems[1].Quantity);
+                            player.MessageFrom("RecoilTest",
+                                red + p.Inventory.BarItems[1].Name + " / " + p.Inventory.BarItems[1].Quantity);
                         }
+
                         storage[p.UID] = itemcount;
                         p.Inventory.RemoveItem(30);
                         p.Inventory.RemoveItem(31);
@@ -669,6 +728,7 @@ namespace AdvancedTester
                         {
                             lang = (int)DataStore.GetInstance().Get("ADVTEST", p.UID);
                         }
+
                         UnderTesting[p.UID] = new TestData(p, lang);
                         Dictionary<string, object> dict = new Dictionary<string, object>();
                         dict["Location"] = p.Location;
@@ -682,6 +742,7 @@ namespace AdvancedTester
                         p.MessageFrom("RecoilTest", red + "=== Recoil Test ===");
                         p.MessageFrom("RecoilTest", red + "Take the M4, reload It and start shooting!");
                     }
+
                     break;
                 }
                 case "jumptest":
@@ -690,11 +751,13 @@ namespace AdvancedTester
                     {
                         return;
                     }
+
                     if (args.Length == 0)
                     {
                         player.MessageFrom("JumpTest", red + "Usage: /jumptest playername - To Start/Stop Testing");
                         return;
                     }
+
                     string s = string.Join(" ", args);
                     Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
                     if (p == null)
@@ -702,6 +765,7 @@ namespace AdvancedTester
                         player.MessageFrom("JumpTest", red + "Couldn't find " + s + "!");
                         return;
                     }
+
                     ulong id = p.UID;
                     if (DataStore.GetInstance().ContainsKey("JumpTest", id))
                     {
@@ -720,6 +784,7 @@ namespace AdvancedTester
                         p.MessageFrom("RecoilTest", red + "=== Jump Test ===");
                         p.MessageFrom("RecoilTest", red + "Start jumping rapidly!");
                     }
+
                     break;
                 }
                 case "fatest":
@@ -728,11 +793,13 @@ namespace AdvancedTester
                     {
                         return;
                     }
+
                     if (args.Length == 0)
                     {
                         player.MessageFrom("AdvancedTest", red + "Usage: /fatest playername - Test player");
                         return;
                     }
+
                     string s = string.Join(" ", args);
                     Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
                     if (p == null)
@@ -740,12 +807,15 @@ namespace AdvancedTester
                         player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
                         return;
                     }
+
                     if (UnderTesting.Keys.Count == MaxTest)
                     {
-                            player.MessageFrom("AdvancedTest", red 
-                                + "Too many Players being tested! Wait for them to finish! (Max: " + MaxTest + ")");
-                            return;
+                        player.MessageFrom("AdvancedTest", red
+                                                           + "Too many Players being tested! Wait for them to finish! (Max: " +
+                                                           MaxTest + ")");
+                        return;
                     }
+
                     if (WarnInventoryBeforeTest)
                     {
                         p.Notice("", p.Name + " test starting, CLOSE your INVENTORY!", 8f);
@@ -759,6 +829,7 @@ namespace AdvancedTester
                     {
                         StartTest(p);
                     }
+
                     player.MessageFrom("AdvancedTest", green + "Test Started.");
                     break;
                 }
@@ -768,11 +839,13 @@ namespace AdvancedTester
                     {
                         return;
                     }
+
                     if (args.Length == 0)
                     {
                         player.MessageFrom("AdvancedTest", red + "Usage: /stopfatest playername - Stop test");
                         return;
                     }
+
                     string s = string.Join(" ", args);
                     Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
                     if (p == null)
@@ -780,6 +853,7 @@ namespace AdvancedTester
                         player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
                         return;
                     }
+
                     if (UnderTesting.ContainsKey(p.UID))
                     {
                         if (storage.ContainsKey(player.UID))
@@ -791,8 +865,10 @@ namespace AdvancedTester
                             {
                                 player.Inventory.AddItem(x, n[x]);
                             }
+
                             storage.Remove(player.UID);
                         }
+
                         RemoveTest(p);
                         player.MessageFrom("AdvancedTest", green + "Test Stopped.");
                     }
@@ -800,15 +876,19 @@ namespace AdvancedTester
                     {
                         player.MessageFrom("AdvancedTest", green + "Player isn't being tested");
                     }
+
                     break;
                 }
                 case "areport":
                 {
                     if (args.Length == 0)
                     {
-                        player.MessageFrom("AdvancedTest", red + "Usage: /areport playername - Server will test player after " + ReportsNeeded + " reports");
+                        player.MessageFrom("AdvancedTest",
+                            red + "Usage: /areport playername - Server will test player after " + ReportsNeeded +
+                            " reports");
                         return;
                     }
+
                     string s = string.Join(" ", args);
                     Fougerite.Player p = Fougerite.Server.GetServer().FindPlayer(s);
                     if (p == null)
@@ -816,23 +896,28 @@ namespace AdvancedTester
                         player.MessageFrom("AdvancedTest", red + "Couldn't find " + s + "!");
                         return;
                     }
+
                     if (p.Admin || p.Moderator)
                     {
                         player.MessageFrom("AdvancedTest", red + "Admins cannot be tested!");
                         return;
                     }
+
                     if (DSNames.Any(x => DataStore.GetInstance().ContainsKey(x, p.UID) ||
                                          DataStore.GetInstance().ContainsKey(x, p.SteamID)))
                     {
                         player.MessageFrom("AdvancedTest", red + "Player cannot be tested this time, wait a bit!");
                         return;
                     }
+
                     if (UnderTesting.Keys.Count == MaxTest)
                     {
                         player.MessageFrom("AdvancedTest", red
-                                + "Too many Players being tested! Wait for them to finish! (Max: " + MaxTest + ")");
+                                                           + "Too many Players being tested! Wait for them to finish! (Max: " +
+                                                           MaxTest + ")");
                         return;
                     }
+
                     if (TestCooldown.ContainsKey(p.UID))
                     {
                         var Time = TestCooldown[p.UID];
@@ -846,11 +931,13 @@ namespace AdvancedTester
                             return;
                         }
                     }
+
                     if (UnderTesting.ContainsKey(p.UID))
                     {
                         player.MessageFrom("AdvancedTest", "Player is currently being tested!");
                         return;
                     }
+
                     if (ReportC.ContainsKey(p.UID))
                     {
                         var list = ReportC[p.UID];
@@ -859,6 +946,7 @@ namespace AdvancedTester
                             player.MessageFrom("AdvancedTest", "Already Reported!");
                             return;
                         }
+
                         list.Add(player.UID);
                         ReportC[p.UID] = list;
                     }
@@ -868,19 +956,24 @@ namespace AdvancedTester
                         list.Add(player.UID);
                         ReportC[p.UID] = list;
                     }
+
                     if (!Reports.ContainsKey(p.UID))
                     {
                         Reports[p.UID] = 1;
-                        player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( 1/" + ReportsNeeded + " )");
+                        player.MessageFrom("AdvancedTest",
+                            "Player " + p.Name + " reported. ( 1/" + ReportsNeeded + " )");
                     }
                     else
                     {
                         Reports[p.UID] = Reports[p.UID] + 1;
-                        player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( " + Reports[p.UID] + "/" + ReportsNeeded + " )");
+                        player.MessageFrom("AdvancedTest",
+                            "Player " + p.Name + " reported. ( " + Reports[p.UID] + "/" + ReportsNeeded + " )");
                     }
+
                     if (Reports[p.UID] == ReportsNeeded)
                     {
-                        Server.GetServer().BroadcastFrom("AdvancedTest", red + p.Name + " received enough reports. Auto test is starting.");
+                        Server.GetServer().BroadcastFrom("AdvancedTest",
+                            red + p.Name + " received enough reports. Auto test is starting.");
                         if (WarnInventoryBeforeTest)
                         {
                             p.Notice("", p.Name + " test starting, CLOSE your INVENTORY!", 8f);
@@ -897,8 +990,10 @@ namespace AdvancedTester
                     }
                     else
                     {
-                        player.MessageFrom("AdvancedTest", "Player " + p.Name + " reported. ( " + Reports[p.UID] + "/" + ReportsNeeded + " )");
+                        player.MessageFrom("AdvancedTest",
+                            "Player " + p.Name + " reported. ( " + Reports[p.UID] + "/" + ReportsNeeded + " )");
                     }
+
                     break;
                 }
             }
@@ -911,12 +1006,14 @@ namespace AdvancedTester
             {
                 player.RestrictCommand(x);
             }
+
             LastPos[player.UID] = player.Location;
             TestCooldown[player.UID] = TimeSpan.FromTicks(DateTime.Now.Ticks).TotalSeconds;
             if (Reports.ContainsKey(player.UID))
             {
                 Reports.Remove(player.UID);
             }
+
             int i = 1;
             Vector3 pos = Vector3.zero;
             foreach (var x in TestPlaces)
@@ -935,24 +1032,29 @@ namespace AdvancedTester
                         pos.y = yy + 1f;
                         break;
                     }
+
                     i++;
                     continue;
                 }
+
                 pos = x;
                 OccupiedPositions[x] = player.UID;
             }
+
             player.TeleportTo(pos, false);
             int lang = 1;
             if (DataStore.GetInstance().Get("ADVTEST", player.UID) != null)
             {
-                lang = (int) DataStore.GetInstance().Get("ADVTEST", player.UID);
+                lang = (int)DataStore.GetInstance().Get("ADVTEST", player.UID);
             }
+
             if (UnderTesting.Keys.Count == 0)
             {
                 // Lets do PowerSaving
                 Fougerite.Hooks.OnPlayerMove -= OnPlayerMove;
                 Fougerite.Hooks.OnPlayerMove += OnPlayerMove;
             }
+
             var TestDataP = new TestData(player, lang);
             UnderTesting[player.UID] = TestDataP;
             Dictionary<string, int> itemcount = new Dictionary<string, int>();
@@ -960,15 +1062,18 @@ namespace AdvancedTester
             {
                 itemcount[player.Inventory.BarItems[0].Name] = player.Inventory.BarItems[0].Quantity;
             }
+
             if (!player.Inventory.BarItems[1].IsEmpty())
             {
                 itemcount[player.Inventory.BarItems[1].Name] = player.Inventory.BarItems[1].Quantity;
             }
+
             storage[player.UID] = itemcount;
             if (player.IsHungry)
             {
                 player.PlayerClient.controllable.GetComponent<Metabolism>().AddCalories(100);
             }
+
             player.Inventory.RemoveItem(30);
             player.Inventory.RemoveItem(31);
             player.Inventory.AddItemTo("M4", 30);
@@ -981,7 +1086,8 @@ namespace AdvancedTester
                 player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
                 player.MessageFrom("AdvancedTest", red + LanguageDict[TestDataP.LangCode][1]);
             }
-            var dict = new  Dictionary<string, object>();
+
+            var dict = new Dictionary<string, object>();
             dict["Player"] = player;
             var timedEvent = CreateParallelTimer(2500, dict);
             timedEvent.OnFire += Callback;
@@ -1008,35 +1114,43 @@ namespace AdvancedTester
                     LastPos.Remove(player.UID);
                 }
             }
+
             foreach (var x in RestrictedCommands)
             {
                 player.UnRestrictCommand(x);
             }
+
             if (ReportC.ContainsKey(player.UID))
             {
                 ReportC.Remove(player.UID);
             }
+
             if (TData.ContainsKey(player.UID))
             {
                 TData.Remove(player.UID);
             }
+
             if (Angles.ContainsKey(player.UID))
             {
                 Angles.Remove(player.UID);
             }
+
             if (AnglesC.ContainsKey(player.UID))
             {
                 AnglesC.Remove(player.UID);
             }
+
             if (UnderTesting.ContainsKey(player.UID))
             {
                 UnderTesting.Remove(player.UID);
             }
+
             if (OccupiedPositions.ContainsValue(player.UID))
             {
                 var vec = OccupiedPositions.FirstOrDefault(x => x.Value == player.UID).Key;
                 OccupiedPositions.Remove(vec);
             }
+
             if (UnderTesting.Keys.Count == 0)
             {
                 // Lets do PowerSaving
@@ -1049,7 +1163,11 @@ namespace AdvancedTester
             if (DataStore.GetInstance().ContainsKey("RecoilTest", player.UID))
             {
                 Send(player, false);
-                if (storage.ContainsKey(player.UID)) {storage.Remove(player.UID);}
+                if (storage.ContainsKey(player.UID))
+                {
+                    storage.Remove(player.UID);
+                }
+
                 DataStore.GetInstance().Remove("RecoilTest", player.UID);
             }
             else if (DataStore.GetInstance().ContainsKey("JumpTest", player.UID))
@@ -1057,6 +1175,7 @@ namespace AdvancedTester
                 Send2(player, false);
                 DataStore.GetInstance().Remove("JumpTest", player.UID);
             }
+
             if (AutoTestOnJoin && DataStore.GetInstance().Get("ADVTESTAUTO", player.UID) != null)
             {
                 DataStore.GetInstance().Remove("ADVTESTAUTO", player.UID);
@@ -1085,6 +1204,7 @@ namespace AdvancedTester
                 player.SendCommand("input.bind Inventory Tab None");
                 return false;
             }
+
             var data = UnderTesting[player.UID];
             if (!data.RecoilComplete)
             {
@@ -1171,6 +1291,7 @@ namespace AdvancedTester
                     player.SendCommand("input.bind Inventory None None");
                 }
             }
+
             return true;
         }
 
@@ -1300,6 +1421,7 @@ namespace AdvancedTester
             {
                 return;
             }
+
             Vector3 location = (Vector3)dict["Location"];
             player.TeleportTo(location);
             player.MessageFrom("AdvancedTest", green + "Double teleported!");
@@ -1314,6 +1436,7 @@ namespace AdvancedTester
             {
                 return;
             }
+
             StartTest(player);
         }
 
@@ -1333,7 +1456,7 @@ namespace AdvancedTester
             e.Kill();
             var dict = e.Args;
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
-            Vector3 location = (Vector3) dict["Location"];
+            Vector3 location = (Vector3)dict["Location"];
             var sleepers = UnityEngine.Physics.OverlapSphere(location, 2f);
             foreach (var sleeper in sleepers)
             {
@@ -1342,6 +1465,7 @@ namespace AdvancedTester
                 {
                     continue;
                 }
+
                 RustProto.Avatar playerAvatar = NetUser.LoadAvatar(player.UID);
                 //Check if the player has a SLUMBER away event & a timestamp that's older than the oldest permitted, calculated above
                 if (playerAvatar != null && playerAvatar.HasAwayEvent &&
@@ -1363,9 +1487,7 @@ namespace AdvancedTester
             var dict = e.Args;
             e.Kill();
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
-            Loom.QueueOnMainThread(() => {
-                StartTest(player);
-            });
+            Loom.QueueOnMainThread(() => { StartTest(player); });
         }
 
         public void Callback(AdvancedTesterTE e)
@@ -1384,6 +1506,7 @@ namespace AdvancedTester
                 player.MessageFrom("AdvancedTest", yellow + "High Ping or DropTest is Disabled. Ignoring.");
                 UnderTesting[player.UID].FallComplete = true;
             }
+
             var timedEvent = CreateParallelTimer(3500, dict);
             timedEvent.OnFire += Callback2;
             timedEvent.Start();
@@ -1393,8 +1516,8 @@ namespace AdvancedTester
         {
             var dict = e.Args;
             e.Kill();
-            Fougerite.Player player = (Fougerite.Player) dict["Player"];
-            Vector3 pos = (Vector3) dict["Location"];
+            Fougerite.Player player = (Fougerite.Player)dict["Player"];
+            Vector3 pos = (Vector3)dict["Location"];
             if (!UnderTesting[player.UID].FallComplete)
             {
                 foreach (var x in Server.GetServer().Players)
@@ -1404,6 +1527,7 @@ namespace AdvancedTester
                         x.MessageFrom("AdvancedTest", green + player.Name + "'s ping: " + player.Ping);
                     }
                 }
+
                 if (storage.ContainsKey(player.UID))
                 {
                     var n = storage[player.UID];
@@ -1413,16 +1537,21 @@ namespace AdvancedTester
                     {
                         player.Inventory.AddItem(x, n[x]);
                     }
+
                     storage.Remove(player.UID);
                 }
+
                 RemoveTest(player);
-                Fougerite.Server.GetServer().BanPlayer(player, "Console", "Auto DropTest Failed! (Ping: " + player.Ping + ")", null, true);
+                Fougerite.Server.GetServer().BanPlayer(player, "Console",
+                    "Auto DropTest Failed! (Ping: " + player.Ping + ")", null, true);
                 if (RemoveSleeperD)
                 {
                     ExecuteSleeperRemoval(player);
                 }
+
                 return;
             }
+
             player.MessageFrom("AdvancedTest", yellow + "Drop Test Complete!");
             Character c = player.PlayerClient.netUser.playerClient.controllable.character;
             var eyeangles = c.eyesAngles;
@@ -1503,10 +1632,13 @@ namespace AdvancedTester
             {
                 return;
             }
+
             if (RecoilWait != 0)
             {
                 count++;
-                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3] + " ( " + count + "/" + RecoilWait + " )");
+                player.MessageFrom("AdvancedTest",
+                    teal + LanguageDict[UnderTesting[player.UID].LangCode][3] + " ( " + count + "/" + RecoilWait +
+                    " )");
                 if (count == RecoilWait)
                 {
                     RemoveTest(player);
@@ -1515,14 +1647,17 @@ namespace AdvancedTester
                     {
                         ExecuteSleeperRemoval(player);
                     }
+
                     return;
                 }
+
                 dict["Count"] = count;
             }
             else
             {
                 player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3]);
             }
+
             var timedEvent = CreateParallelTimer(2000, dict);
             timedEvent.OnFire += Callback4;
             timedEvent.Start();
@@ -1534,19 +1669,21 @@ namespace AdvancedTester
             var dict = e.Args;
             Vector3 pos = (Vector3)dict["ButtonPos"];
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
-            int SCount = (int) dict["SCount"];
+            int SCount = (int)dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
             int INSERT = (int)dict["INSERT"];
             if (InsertWait == 0)
             {
                 player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][4]);
             }
+
             var pll = player.Location;
             var dist = Vector3.Distance(pos, pll);
             if (SCount2 != 1)
             {
                 dict["SCount2"] = 1;
             }
+
             if (INSERT == InsertWait && InsertWait != 0)
             {
                 RemoveTest(player);
@@ -1555,8 +1692,10 @@ namespace AdvancedTester
                 {
                     ExecuteSleeperRemoval(player);
                 }
+
                 return;
             }
+
             /*if (dist < 0.10f && dist >= 0.001f)
             {
                 SCount++;
@@ -1587,11 +1726,15 @@ namespace AdvancedTester
                 timedEvent3.Start();
                 return;
             }
+
             if (InsertWait > 0)
             {
                 INSERT++;
-                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][4] + " ( " + INSERT + "/" + InsertWait + " )");
+                player.MessageFrom("AdvancedTest",
+                    teal + LanguageDict[UnderTesting[player.UID].LangCode][4] + " ( " + INSERT + "/" + InsertWait +
+                    " )");
             }
+
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
             dict["INSERT"] = INSERT;
@@ -1614,11 +1757,13 @@ namespace AdvancedTester
             {
                 player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][5]);
             }
+
             if (SCount2 != 2)
             {
                 pos = pll;
                 dict["SCount2"] = 2;
             }
+
             if (F2 == F2Wait && F2Wait != 0)
             {
                 RemoveTest(player);
@@ -1627,8 +1772,10 @@ namespace AdvancedTester
                 {
                     ExecuteSleeperRemoval(player);
                 }
+
                 return;
             }
+
             var dist = Vector3.Distance(pos, pll);
             /*if (dist < 0.10f && dist >= 0.001f)
             {
@@ -1660,11 +1807,14 @@ namespace AdvancedTester
                 timedEvent3.Start();
                 return;
             }
+
             if (F2Wait > 0)
             {
-                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][5] + " ( " + F2 + "/" + F2Wait + " )");
+                player.MessageFrom("AdvancedTest",
+                    teal + LanguageDict[UnderTesting[player.UID].LangCode][5] + " ( " + F2 + "/" + F2Wait + " )");
                 F2++;
             }
+
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
             dict["F2"] = F2;
@@ -1687,11 +1837,13 @@ namespace AdvancedTester
             {
                 player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][6]);
             }
+
             if (SCount2 != 3)
             {
                 pos = pll;
                 dict["SCount2"] = 3;
             }
+
             if (F5 == F5Wait && F5Wait != 0)
             {
                 RemoveTest(player);
@@ -1700,8 +1852,10 @@ namespace AdvancedTester
                 {
                     ExecuteSleeperRemoval(player);
                 }
+
                 return;
             }
+
             var dist = Vector3.Distance(pos, pll);
             /*if (dist < 0.10f && dist >= 0.001f)
             {
@@ -1733,11 +1887,14 @@ namespace AdvancedTester
                 timedEvent3.Start();
                 return;
             }
+
             if (F5Wait > 0)
             {
-                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][6] + " ( " + F5 + "/" + F5Wait + " )");
+                player.MessageFrom("AdvancedTest",
+                    teal + LanguageDict[UnderTesting[player.UID].LangCode][6] + " ( " + F5 + "/" + F5Wait + " )");
                 F5++;
             }
+
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
             dict["F5"] = F5;
@@ -1757,6 +1914,7 @@ namespace AdvancedTester
                 dict["ButtonPos"] = player.Location;
                 pos = player.Location;
             }
+
             int SCount = (int)dict["SCount"];
             int SCount2 = (int)dict["SCount2"];
             int F3 = (int)dict["F3"];
@@ -1765,11 +1923,13 @@ namespace AdvancedTester
             {
                 player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][7]);
             }
+
             if (SCount2 != 3)
             {
                 pos = pll;
                 dict["SCount2"] = 3;
             }
+
             if (F3 == F3Wait && F3Wait != 0)
             {
                 RemoveTest(player);
@@ -1778,8 +1938,10 @@ namespace AdvancedTester
                 {
                     ExecuteSleeperRemoval(player);
                 }
+
                 return;
             }
+
             var dist = Vector3.Distance(pos, pll);
             /*if (dist < 0.10f && dist >= 0.001f)
             {
@@ -1804,11 +1966,14 @@ namespace AdvancedTester
                 Server.GetServer().BroadcastFrom("AdvancedTest", green + player.Name + " passed all auto tests!");
                 return;
             }
+
             if (F3Wait > 0)
             {
-                player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][7] + " ( " + F3 + "/" + F3Wait + " )");
+                player.MessageFrom("AdvancedTest",
+                    teal + LanguageDict[UnderTesting[player.UID].LangCode][7] + " ( " + F3 + "/" + F3Wait + " )");
                 F3++;
             }
+
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
             dict["F3"] = F3;
@@ -1847,7 +2012,7 @@ namespace AdvancedTester
                 set { LanguageCode = value; }
             }
 
-            public bool RecoilComplete 
+            public bool RecoilComplete
             {
                 get { return RecoilTest; }
                 set { RecoilTest = value; }
