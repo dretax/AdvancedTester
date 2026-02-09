@@ -43,7 +43,7 @@
       <HintPath>d:\Projects\NETPlatform\Visual Studio 2013\FougeriteProject\bin\Fougerite.dll</HintPath>
     </Reference>
     <Reference Include="GeoIP">
-      <HintPath>..\..\FougeriteProject\References\GeoIP.dll</HintPath>
+      <HintPath>GeoIP.dll</HintPath>
     </Reference>
     <Reference Include="Google.ProtocolBuffers">
       <SpecificVersion>False</SpecificVersion>
@@ -60,7 +60,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdvancedTester.cs" />
-    <Compile Include="AdvancedTesterTE.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

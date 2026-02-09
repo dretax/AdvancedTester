@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using Fougerite;
+using Fougerite.Concurrent;
 using Fougerite.Events;
+using Fougerite.Permissions;
 using RustProto;
 using UnityEngine;
 using Random = System.Random;
@@ -25,7 +26,7 @@ namespace AdvancedTester
         public Dictionary<ulong, Dictionary<string, int>> storage;
         public Dictionary<ulong, int> Reports;
         public Dictionary<Vector3, ulong> OccupiedPositions;
-        public Dictionary<ulong, TestData> UnderTesting;
+        public ConcurrentDictionary<ulong, TestData> UnderTesting;
         public Dictionary<ulong, double> TestCooldown;
         public Dictionary<ulong, Vector3> LastPos;
         public Dictionary<ulong, List<ulong>> ReportC;
@@ -74,7 +75,7 @@ namespace AdvancedTester
 
         public override Version Version
         {
-            get { return new Version("1.6.3"); }
+            get { return new Version("1.6.4"); }
         }
 
         public override void Initialize()
@@ -234,68 +235,12 @@ namespace AdvancedTester
                 Settings.Save();
             }
 
-            try
-            {
-                Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
-                TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery")) * 60;
-                RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
-                ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
-                InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
-                F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
-                F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
-                F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
-                MaxTest = int.Parse(Settings.GetSetting("Settings", "MaxTest"));
-                WarnSeconds = int.Parse(Settings.GetSetting("Settings", "WarnSeconds"));
-                IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
-                AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
-                DropTest = Settings.GetBoolSetting("Settings", "DropTest");
-                RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
-                EnableButtonWarnMessage = Settings.GetBoolSetting("Settings", "EnableButtonWarnMessage");
-                UnBindTab = Settings.GetBoolSetting("Settings", "UnBindTab");
-                MenuHackBan = Settings.GetBoolSetting("Settings", "MenuHackBan");
-                WarnInventoryBeforeTest = Settings.GetBoolSetting("Settings", "WarnInventoryBeforeTest");
-                var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
-                foreach (var x in cmds)
-                {
-                    RestrictedCommands.Add(x);
-                }
-
-                var dsnamesc = Settings.GetSetting("Settings", "DSNames").Split(Convert.ToChar(","));
-                foreach (var x in dsnamesc)
-                {
-                    DSNames.Add(x);
-                }
-
-                var langcodes = Settings.EnumSection("Languages");
-                foreach (var x in langcodes)
-                {
-                    var lang = Settings.GetSetting("Languages", x);
-                    var langms = Settings.EnumSection(lang);
-                    Dictionary<int, string> langmdata = new Dictionary<int, string>();
-                    foreach (var y in langms)
-                    {
-                        langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
-                    }
-
-                    LanguageDict[int.Parse(x)] = langmdata;
-                }
-
-                var langdata = Settings.EnumSection("LanguageData");
-                foreach (var x in langdata)
-                {
-                    var lang = Settings.GetSetting("LanguageData", x);
-                    LanguageData[x] = int.Parse(lang);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("[AdvancedTester] Failed to read the config! Fix It! " + ex);
-            }
+            ReloadConfig();
 
             storage = new Dictionary<ulong, Dictionary<string, int>>();
             Reports = new Dictionary<ulong, int>();
             OccupiedPositions = new Dictionary<Vector3, ulong>();
-            UnderTesting = new Dictionary<ulong, TestData>();
+            UnderTesting = new ConcurrentDictionary<ulong, TestData>();
             TestCooldown = new Dictionary<ulong, double>();
             LastPos = new Dictionary<ulong, Vector3>();
             ReportC = new Dictionary<ulong, List<ulong>>();
@@ -336,6 +281,7 @@ namespace AdvancedTester
             {
                 RemoveTest(Fougerite.Server.Cache[x], true);
             }
+            KillTimers();
         }
 
         public void OnPlayerMove(HumanController hc, Vector3 origin, int encoded, ushort stateflags,
@@ -450,16 +396,82 @@ namespace AdvancedTester
                     dict["F2"] = 0;
                     dict["F5"] = 0;
                     dict["F3"] = 0;
-                    var timedEvent2 = CreateParallelTimer(1000, dict);
-                    timedEvent2.OnFire += Callback5;
-                    timedEvent2.Start();
+                    CreateParallelTimer("Callback5_" + player.UID, 1000, dict, Callback5).Start();
                 }
             }
         }
 
+        public bool ReloadConfig()
+        {
+            try
+            {
+                Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
+                TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery")) * 60;
+                RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
+                ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
+                InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
+                F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
+                F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
+                F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
+                MaxTest = int.Parse(Settings.GetSetting("Settings", "MaxTest"));
+                WarnSeconds = int.Parse(Settings.GetSetting("Settings", "WarnSeconds"));
+                IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
+                AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
+                DropTest = Settings.GetBoolSetting("Settings", "DropTest");
+                RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
+                EnableButtonWarnMessage = Settings.GetBoolSetting("Settings", "EnableButtonWarnMessage");
+                UnBindTab = Settings.GetBoolSetting("Settings", "UnBindTab");
+                MenuHackBan = Settings.GetBoolSetting("Settings", "MenuHackBan");
+                WarnInventoryBeforeTest = Settings.GetBoolSetting("Settings", "WarnInventoryBeforeTest");
+                var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
+                foreach (var x in cmds)
+                {
+                    RestrictedCommands.Add(x);
+                }
+
+                var dsnamesc = Settings.GetSetting("Settings", "DSNames").Split(Convert.ToChar(","));
+                foreach (var x in dsnamesc)
+                {
+                    DSNames.Add(x);
+                }
+
+                var langcodes = Settings.EnumSection("Languages");
+                foreach (var x in langcodes)
+                {
+                    var lang = Settings.GetSetting("Languages", x);
+                    var langms = Settings.EnumSection(lang);
+                    Dictionary<int, string> langmdata = new Dictionary<int, string>();
+                    foreach (var y in langms)
+                    {
+                        langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
+                    }
+
+                    LanguageDict[int.Parse(x)] = langmdata;
+                }
+
+                var langdata = Settings.EnumSection("LanguageData");
+                foreach (var x in langdata)
+                {
+                    var lang = Settings.GetSetting("LanguageData", x);
+                    LanguageData[x] = int.Parse(lang);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("[AdvancedTester] Failed to read the config! Fix It! " + ex);
+                return false;
+            }
+
+            return true;
+        }
+
         public void OnPlayerConnected(Fougerite.Player player)
         {
-            DataStore.GetInstance().Add("ADVTESTAUTO", player.UID, 1);
+            if (AutoTestOnJoin)
+            {
+                DataStore.GetInstance().Add("ADVTESTAUTO", player.UID, 1);
+            }
+
             if (!GeoIPSupport)
             {
                 return;
@@ -470,17 +482,22 @@ namespace AdvancedTester
                 return;
             }
 
-            Thread thread = new Thread(() => DetermineLocation(player));
-            thread.IsBackground = true;
-            thread.Start();
+            DetermineLocation(player);
         }
 
-        internal void DetermineLocation(Fougerite.Player player)
+        private void DetermineLocation(Fougerite.Player player)
         {
             var GeoIPS = GeoIP.GeoIP.Instance;
-            var data = GeoIPS.GetDataOfIP(player.IP);
-            DataStore.GetInstance().Add("ADVTEST", player.UID,
-                LanguageData.ContainsKey(data.Country) ? LanguageData[data.Country] : 1);
+            GeoIPS.GetDataOfIP(player.IP, ProcessIPData, player);
+        }
+
+        private void ProcessIPData(GeoIP.GeoIP.IPData data, Fougerite.Player player)
+        {
+            if (player != null)
+            {
+                DataStore.GetInstance().Add("ADVTEST", player.UID,
+                    LanguageData.ContainsKey(data.Country) ? LanguageData[data.Country] : 1);
+            }
         }
 
         public void OnModulesLoaded()
@@ -540,44 +557,16 @@ namespace AdvancedTester
                 {
                     player.MessageFrom("AdvancedTest",
                         green + "AdvancedTest " + yellow + " V" + Version + " [COLOR#FFFFFF] By DreTaX");
-                    if (player.Admin)
+                    if (player.Admin || PermissionSystem.GetPermissionSystem().PlayerHasPermission(player, "advancedtester.advancedtest"))
                     {
-                        Settings = new IniParser(Path.Combine(ModuleFolder, "Settings.ini"));
-                        TestAllowedEvery = int.Parse(Settings.GetSetting("Settings", "TestAllowedEvery")) * 60;
-                        RecoilWait = int.Parse(Settings.GetSetting("Settings", "RecoilWait"));
-                        ReportsNeeded = int.Parse(Settings.GetSetting("Settings", "ReportsNeeded"));
-                        InsertWait = int.Parse(Settings.GetSetting("Settings", "InsertWait"));
-                        F2Wait = int.Parse(Settings.GetSetting("Settings", "F2Wait"));
-                        F5Wait = int.Parse(Settings.GetSetting("Settings", "F5Wait"));
-                        F3Wait = int.Parse(Settings.GetSetting("Settings", "F3Wait"));
-                        MaxTest = int.Parse(Settings.GetSetting("Settings", "MaxTest"));
-                        IgnoreDropIfPing = int.Parse(Settings.GetSetting("Settings", "IgnoreDropIfPing"));
-                        WarnSeconds = int.Parse(Settings.GetSetting("Settings", "WarnSeconds"));
-                        AutoTestOnJoin = Settings.GetBoolSetting("Settings", "AutoTestOnJoin");
-                        RemoveSleeperD = Settings.GetBoolSetting("Settings", "RemoveSleeperD");
-                        DropTest = Settings.GetBoolSetting("Settings", "DropTest");
-                        UnBindTab = Settings.GetBoolSetting("Settings", "UnBindTab");
-                        MenuHackBan = Settings.GetBoolSetting("Settings", "MenuHackBan");
-                        WarnInventoryBeforeTest = Settings.GetBoolSetting("Settings", "WarnInventoryBeforeTest");
-                        var cmds = Settings.GetSetting("Settings", "RestrictedCommands").Split(Convert.ToChar(","));
-                        RestrictedCommands.Clear();
-                        foreach (var x in cmds)
+                        bool b = ReloadConfig();
+                        if (!b)
                         {
-                            RestrictedCommands.Add(x);
+                            player.MessageFrom("AdvamcedTest", red + "Failed to reload config! Check the log!");
                         }
-
-                        var langcodes = Settings.EnumSection("Languages");
-                        foreach (var x in langcodes)
+                        else 
                         {
-                            var lang = Settings.GetSetting("Languages", x);
-                            var langms = Settings.EnumSection(lang);
-                            Dictionary<int, string> langmdata = new Dictionary<int, string>();
-                            foreach (var y in langms)
-                            {
-                                langmdata[int.Parse(y)] = Settings.GetSetting(lang, y);
-                            }
-
-                            LanguageDict[int.Parse(x)] = langmdata;
+                            player.MessageFrom("AdvancedTest", green + "Config reloaded successfully!");
                         }
                     }
 
@@ -619,7 +608,7 @@ namespace AdvancedTester
                 }
                 case "alangflush":
                 {
-                    if (player.Admin)
+                    if (player.Admin || PermissionSystem.GetPermissionSystem().PlayerHasPermission(player, "advancedtester.alangflush"))
                     {
                         DataStore.GetInstance().Flush("ADVTEST");
                         player.MessageFrom("AdvancedTest", "Flushed!");
@@ -629,7 +618,7 @@ namespace AdvancedTester
                 }
                 case "recoiltest":
                 {
-                    if (!player.Admin && !player.Moderator)
+                    if (!player.Admin && !player.Moderator && !PermissionSystem.GetPermissionSystem().PlayerHasPermission(player, "advancedtester.recoiltest"))
                     {
                         return;
                     }
@@ -673,7 +662,7 @@ namespace AdvancedTester
 
                         if (UnderTesting.ContainsKey(p.UID))
                         {
-                            UnderTesting.Remove(p.UID);
+                            UnderTesting.TryRemove(p.UID);
                         }
 
                         if (Angles.ContainsKey(p.UID))
@@ -730,10 +719,10 @@ namespace AdvancedTester
                         }
 
                         UnderTesting[p.UID] = new TestData(p, lang);
-                        Dictionary<string, object> dict = new Dictionary<string, object>();
+                        /*Dictionary<string, object> dict = new Dictionary<string, object>();
                         dict["Location"] = p.Location;
                         dict["Player"] = p;
-                        /*var timedEvent = CreateParallelTimer(2000, dict);
+                        var timedEvent = CreateParallelTimer(2000, dict);
                         timedEvent.OnFire += Callback3;
                         timedEvent.Start();*/
 
@@ -747,7 +736,7 @@ namespace AdvancedTester
                 }
                 case "jumptest":
                 {
-                    if (!player.Admin && !player.Moderator)
+                    if (!player.Admin && !player.Moderator && !PermissionSystem.GetPermissionSystem().PlayerHasPermission(player, "advancedtester.jumptest"))
                     {
                         return;
                     }
@@ -789,7 +778,7 @@ namespace AdvancedTester
                 }
                 case "fatest":
                 {
-                    if (!player.Admin && !player.Moderator)
+                    if (!player.Admin && !player.Moderator && !PermissionSystem.GetPermissionSystem().PlayerHasPermission(player, "advancedtester.fatest"))
                     {
                         return;
                     }
@@ -821,9 +810,7 @@ namespace AdvancedTester
                         p.Notice("", p.Name + " test starting, CLOSE your INVENTORY!", 8f);
                         Dictionary<string, object> dict = new Dictionary<string, object>();
                         dict["Player"] = p;
-                        var timedEvent = CreateParallelTimer(WarnSeconds * 1000, dict);
-                        timedEvent.OnFire += DelayTest;
-                        timedEvent.Start();
+                        CreateParallelTimer("DelayTest_" + p.UID, WarnSeconds * 1000, dict, DelayTest).Start();
                     }
                     else
                     {
@@ -835,7 +822,7 @@ namespace AdvancedTester
                 }
                 case "stopfatest":
                 {
-                    if (!player.Admin && !player.Moderator)
+                    if (!player.Admin && !player.Moderator && !PermissionSystem.GetPermissionSystem().PlayerHasPermission(player, "advancedtester.stopfatest"))
                     {
                         return;
                     }
@@ -979,9 +966,7 @@ namespace AdvancedTester
                             p.Notice("", p.Name + " test starting, CLOSE your INVENTORY!", 8f);
                             Dictionary<string, object> dict = new Dictionary<string, object>();
                             dict["Player"] = p;
-                            var timedEvent = CreateParallelTimer(WarnSeconds * 1000, dict);
-                            timedEvent.OnFire += DelayTest;
-                            timedEvent.Start();
+                            CreateParallelTimer("DelayTest_" + p.UID, WarnSeconds * 1000, dict, DelayTest).Start();
                         }
                         else
                         {
@@ -1089,12 +1074,8 @@ namespace AdvancedTester
 
             var dict = new Dictionary<string, object>();
             dict["Player"] = player;
-            var timedEvent = CreateParallelTimer(2500, dict);
-            timedEvent.OnFire += Callback;
-            timedEvent.Start();
-            var timedEvent2 = CreateParallelTimer(450, dict);
-            timedEvent2.OnFire += AntiMove;
-            timedEvent2.Start();
+            CreateParallelTimer("Callback_" + player.UID, 2500, dict, Callback).Start();
+            CreateParallelTimer("AntiMove_" + player.UID, 450, dict, AntiMove).Start();
         }
 
         public void RemoveTest(Fougerite.Player player, bool Disconnected = false)
@@ -1108,9 +1089,7 @@ namespace AdvancedTester
                     var dict = new Dictionary<string, object>();
                     dict["Location"] = LastPos[player.UID];
                     dict["Player"] = player;
-                    var timedEvent = CreateParallelTimer(2000, dict);
-                    timedEvent.OnFire += ReTeleport;
-                    timedEvent.Start();
+                    CreateParallelTimer("ReTeleport_" + player.UID, 2000, dict, ReTeleport).Start();
                     LastPos.Remove(player.UID);
                 }
             }
@@ -1142,7 +1121,7 @@ namespace AdvancedTester
 
             if (UnderTesting.ContainsKey(player.UID))
             {
-                UnderTesting.Remove(player.UID);
+                UnderTesting.TryRemove(player.UID);
             }
 
             if (OccupiedPositions.ContainsValue(player.UID))
@@ -1181,9 +1160,7 @@ namespace AdvancedTester
                 DataStore.GetInstance().Remove("ADVTESTAUTO", player.UID);
                 var dict = new Dictionary<string, object>();
                 dict["Player"] = player;
-                var timedEvent = CreateParallelTimer(5000, dict);
-                timedEvent.OnFire += SpawnDelay;
-                timedEvent.Start();
+                CreateParallelTimer("SpawnDelay_" + player.UID, 5000, dict, SpawnDelay).Start();
             }
         }
 
@@ -1406,13 +1383,11 @@ namespace AdvancedTester
                 var dict = new Dictionary<string, object>();
                 dict["Location"] = player.DisconnectLocation;
                 dict["Player"] = player;
-                var timedEvent = CreateParallelTimer(3500, dict);
-                timedEvent.OnFire += RemoveSleeper;
-                timedEvent.Start();
+                CreateParallelTimer("RemoveSleeper_" + player.UID, 3500, dict, RemoveSleeper).Start();
             }
         }
 
-        public void ReTeleport(AdvancedTesterTE e)
+        public void ReTeleport(TimedEvent e)
         {
             e.Kill();
             var dict = e.Args;
@@ -1427,7 +1402,7 @@ namespace AdvancedTester
             player.MessageFrom("AdvancedTest", green + "Double teleported!");
         }
 
-        public void SpawnDelay(AdvancedTesterTE e)
+        public void SpawnDelay(TimedEvent e)
         {
             e.Kill();
             var dict = e.Args;
@@ -1440,7 +1415,7 @@ namespace AdvancedTester
             StartTest(player);
         }
 
-        public void AntiMove(AdvancedTesterTE e)
+        public void AntiMove(TimedEvent e)
         {
             var dict = e.Args;
             Fougerite.Player player = (Fougerite.Player)dict["Player"];
@@ -1451,7 +1426,7 @@ namespace AdvancedTester
             }
         }
 
-        public void RemoveSleeper(AdvancedTesterTE e)
+        public void RemoveSleeper(TimedEvent e)
         {
             e.Kill();
             var dict = e.Args;
@@ -1482,7 +1457,7 @@ namespace AdvancedTester
             }
         }
 
-        public void DelayTest(AdvancedTesterTE e)
+        public void DelayTest(TimedEvent e)
         {
             var dict = e.Args;
             e.Kill();
@@ -1490,7 +1465,7 @@ namespace AdvancedTester
             Loom.QueueOnMainThread(() => { StartTest(player); });
         }
 
-        public void Callback(AdvancedTesterTE e)
+        public void Callback(TimedEvent e)
         {
             var dict = e.Args;
             e.Kill();
@@ -1507,12 +1482,10 @@ namespace AdvancedTester
                 UnderTesting[player.UID].FallComplete = true;
             }
 
-            var timedEvent = CreateParallelTimer(3500, dict);
-            timedEvent.OnFire += Callback2;
-            timedEvent.Start();
+            CreateParallelTimer("Callback2_" + player.UID, 3500, dict, Callback2).Start();
         }
 
-        public void Callback2(AdvancedTesterTE e)
+        public void Callback2(TimedEvent e)
         {
             var dict = e.Args;
             e.Kill();
@@ -1572,12 +1545,10 @@ namespace AdvancedTester
             Angles[player.UID] = eyeangles;
             AnglesC[player.UID] = 0;
             dict["Count"] = 0;
-            var timedEvent2 = CreateParallelTimer(2000, dict);
-            timedEvent2.OnFire += Callback4;
-            timedEvent2.Start();
+            CreateParallelTimer("Callback4_" + player.UID, 2000, dict, Callback4).Start();
             TData[player.UID] = dict;
         }
-
+        
         /*public void Callback3(AdvancedTesterTE e)
         {
             var dict = e.Args;
@@ -1622,7 +1593,7 @@ namespace AdvancedTester
             }
         }*/
 
-        public void Callback4(AdvancedTesterTE e)
+        public void Callback4(TimedEvent e)
         {
             e.Kill();
             var dict = e.Args;
@@ -1658,12 +1629,10 @@ namespace AdvancedTester
                 player.MessageFrom("AdvancedTest", teal + LanguageDict[UnderTesting[player.UID].LangCode][3]);
             }
 
-            var timedEvent = CreateParallelTimer(2000, dict);
-            timedEvent.OnFire += Callback4;
-            timedEvent.Start();
+            CreateParallelTimer("Callback4_Repeat_" + player.UID, 2000, dict, Callback4).Start();
         }
 
-        public void Callback5(AdvancedTesterTE e)
+        public void Callback5(TimedEvent e)
         {
             e.Kill();
             var dict = e.Args;
@@ -1721,9 +1690,7 @@ namespace AdvancedTester
                 dict["ButtonPos"] = player.Location;
                 dict["SCount"] = 0;
                 UnderTesting[player.UID].ButtonComplete = true;
-                var timedEvent3 = CreateParallelTimer(1500, dict);
-                timedEvent3.OnFire += Callback6;
-                timedEvent3.Start();
+                CreateParallelTimer("Callback6_" + player.UID, 1500, dict, Callback6).Start();
                 return;
             }
 
@@ -1738,12 +1705,10 @@ namespace AdvancedTester
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
             dict["INSERT"] = INSERT;
-            var timedEvent2 = CreateParallelTimer(1000, dict);
-            timedEvent2.OnFire += Callback5;
-            timedEvent2.Start();
+            CreateParallelTimer("Callback5_Repeat_" + player.UID, 1000, dict, Callback5).Start();
         }
 
-        public void Callback6(AdvancedTesterTE e)
+        public void Callback6(TimedEvent e)
         {
             e.Kill();
             var dict = e.Args;
@@ -1802,9 +1767,7 @@ namespace AdvancedTester
                 dict["ButtonPos"] = player.Location;
                 dict["SCount"] = 0;
                 UnderTesting[player.UID].ButtonComplete2 = true;
-                var timedEvent3 = CreateParallelTimer(1500, dict);
-                timedEvent3.OnFire += Callback7;
-                timedEvent3.Start();
+                CreateParallelTimer("Callback7_" + player.UID, 1500, dict, Callback7).Start();
                 return;
             }
 
@@ -1818,12 +1781,10 @@ namespace AdvancedTester
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
             dict["F2"] = F2;
-            var timedEvent2 = CreateParallelTimer(1000, dict);
-            timedEvent2.OnFire += Callback6;
-            timedEvent2.Start();
+            CreateParallelTimer("Callback6_Repeat_" + player.UID, 1000, dict, Callback6).Start();
         }
 
-        public void Callback7(AdvancedTesterTE e)
+        public void Callback7(TimedEvent e)
         {
             e.Kill();
             var dict = e.Args;
@@ -1882,9 +1843,7 @@ namespace AdvancedTester
                 dict["ButtonPos"] = Vector3.zero;
                 dict["SCount"] = 0;
                 UnderTesting[player.UID].ButtonComplete3 = true;
-                var timedEvent3 = CreateParallelTimer(1500, dict);
-                timedEvent3.OnFire += Callback8;
-                timedEvent3.Start();
+                CreateParallelTimer("Callback8_" + player.UID, 1500, dict, Callback8).Start();
                 return;
             }
 
@@ -1898,12 +1857,10 @@ namespace AdvancedTester
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
             dict["F5"] = F5;
-            var timedEvent2 = CreateParallelTimer(1000, dict);
-            timedEvent2.OnFire += Callback7;
-            timedEvent2.Start();
+            CreateParallelTimer("Callback7_Repeat_" + player.UID, 1000, dict, Callback7).Start();
         }
 
-        public void Callback8(AdvancedTesterTE e)
+        public void Callback8(TimedEvent e)
         {
             e.Kill();
             var dict = e.Args;
@@ -1977,16 +1934,7 @@ namespace AdvancedTester
             dict["ButtonPos"] = pll;
             dict["SCount"] = SCount;
             dict["F3"] = F3;
-            var timedEvent2 = CreateParallelTimer(1000, dict);
-            timedEvent2.OnFire += Callback8;
-            timedEvent2.Start();
-        }
-
-        public AdvancedTesterTE CreateParallelTimer(int timeoutDelay, Dictionary<string, object> args)
-        {
-            AdvancedTesterTE timedEvent = new AdvancedTesterTE(timeoutDelay);
-            timedEvent.Args = args;
-            return timedEvent;
+            CreateParallelTimer("Callback8_Repeat_" + player.UID, 1000, dict, Callback8).Start();
         }
 
         public class TestData
